@@ -39,3 +39,17 @@ luac.out
 *.x86_64
 *.hex
 
+# Binaries
+**/bin/
+Build/
+
+# Log Files
+*.log
+
+# Visual Studio files and folder
+.vs/
+**.sln
+**.vcxproj
+**.vcxproj.filters
+**.vcxproj.user
+
