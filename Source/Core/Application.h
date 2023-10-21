@@ -5,6 +5,7 @@
 #include "Log.h"
 #include "NesConsole.h"
 
+#include "nfd.h"
 
 namespace NesEmulator
 {

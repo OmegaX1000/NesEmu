@@ -9,9 +9,6 @@ project "Test"
 
 	files
 	{
-		--"$(SolutionDir)/Source/Core/**.h",
-		--"$(SolutionDir)/Source/Core/**.cpp",
-		--"$(SolutionDir)/Source/NES/**.h",
 		"%{wks.location}/Source/NES/**.cpp",
 		"%{IncludeDir.Catch2}catch_amalgamated.cpp",
 		"Units/**.h",

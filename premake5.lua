@@ -18,6 +18,7 @@ workspace "TestNES"
 
 group "Dependencies"
 	include "Dependencies/imgui/"
+	include "Dependencies/nativefiledialog/"
 group ""
 
 include "Source/"

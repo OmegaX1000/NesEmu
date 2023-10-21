@@ -19,30 +19,12 @@ namespace NesEmulator
 		};
 
 		//Testing Instructions
-		UInt8 Test[] = 
-		{ 
-			0xE6, 0x05,		  //INC $05
-			0xE6, 0x05,		  //INC $05
-			0xEE, 0x80, 0x50, //INC $5080
-			0xEE, 0x80, 0x50, //INC $5080
-			0xC6, 0x05,		  //DEC $05
-			0xCE, 0x80, 0x50, //DEC $5080
-			0xE8,			  //INX
-			0xE8,			  //INX
-			0xF6, 0x06,		  //INC $06, X
-			0xF6, 0x06,		  //INC $06, X
-			0xFE, 0x90, 0x50, //INC $5090, X
-			0xFE, 0x90, 0x50, //INC $5090, X
-			0xD6, 0x06,		  //DEC $06, X
-			0xDE, 0x90, 0x50, //DEC $5090, X
-			0xCA,			  //DEX
-			0xCA			  //DEX
-		};
-		
-		for (UInt16 i = 0; i < (sizeof(Test) / sizeof(UInt8)); i++)
-		{
-			Ram[0x8000 + i] = Test[i];
-		}
+		//std::string TestPath = "F:/OmegaGamingHunters Folder/TestNES Emulator/Assets/Programs/nestest.nes";
+		//std::ifstream ProgramFile(TestPath, std::ifstream::binary);
+		//ProgramFile.seekg(0x10);
+		//ProgramFile.read((char*)Ram + 0x8000, 0x4000);
+		//ProgramFile.seekg(0x10);
+		//ProgramFile.read((char*)Ram + 0xC000, 0x4000);
 
 		//Set our interrupt Vectors.
 		Ram[0xFFFC] = 0x00;
@@ -68,6 +50,11 @@ namespace NesEmulator
 
 		return 0x00;
 	}
+	void NesConsole::InsertCartridge(std::string_view NewCartPath)
+	{
+		this->Cartridge = std::make_shared<NesCartridge>(NewCartPath);
+	}
+
 	void NesConsole::DrawRamContents(int StartAddress)
 	{
 		ImGui::Begin("RAM Contents");

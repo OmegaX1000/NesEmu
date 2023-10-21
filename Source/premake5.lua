@@ -24,7 +24,8 @@ project "Emulator"
 		"%{IncludeDir.Spdlog}",
 		"%{IncludeDir.Diligent}",
 		"%{IncludeDir.Imgui}",
-		"%{IncludeDir.ImGuiFonts}"
+		"%{IncludeDir.ImGuiFonts}",
+		"%{IncludeDir.NatFileDial}"
 	}
 
 	libdirs
@@ -36,6 +37,7 @@ project "Emulator"
 	links
 	{
 		"ImGui",
+		"NativeFileDialog",
 		"SDL2.lib",
 		"SDL2main.lib",
 		"DiligentCore.lib",

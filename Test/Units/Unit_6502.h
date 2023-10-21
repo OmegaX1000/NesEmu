@@ -2,6 +2,7 @@
 #include "catch_amalgamated.hpp"
 #include "NesConsole.h"
 
+
 TEST_CASE("6502 CPU Instructions")
 {
 	NesEmulator::NesConsole TestConsole;

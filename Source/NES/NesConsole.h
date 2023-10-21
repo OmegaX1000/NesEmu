@@ -1,9 +1,11 @@
 #pragma once
 #include "NesCPU.h"
+#include "NesCartridge.h"
 #include "imgui.h"
 #include "imgui_memory_editor.h"
 
 #include <string>
+#include <memory>
 #include "spdlog/fmt/fmt.h"
 
 namespace NesEmulator
@@ -15,6 +17,10 @@ namespace NesEmulator
 			NesCPU CPU;		  //The CPU (6502)
 			UInt8 Ram[65536]; //Our 64Kb of RAM
 
+			//The Cartridge that holds our Program.
+			std::shared_ptr<NesCartridge> Cartridge;
+
+			//Debug Stuff
 			MemoryEditor MemoryViewer;
 
 		public:
@@ -23,14 +29,15 @@ namespace NesEmulator
 			NesConsole();
 
 			//RAM Functions
-			void WriteRAM(UInt16 Address, UInt8 Data);
-			UInt8 ReadRAM(UInt16 Address);
-			void DrawRamContents(int StartAddress);
+			void WriteRAM(UInt16 Address, UInt8 Data); //CPU WriteRam Function.
+			UInt8 ReadRAM(UInt16 Address);			   //CPU ReadRam Function.
+
+			void InsertCartridge(std::string_view NewCartPath);
 
 			//Device Getters
 			NesCPU* GetCPU();
 
-			//Etc Functions
-			
+			//Debug Functions
+			void DrawRamContents(int StartAddress);
 	};
 }
