@@ -6,16 +6,22 @@ namespace NesEmulator
 	//The mapper is responsible for mapping the Memory to the CPU and PPU Memory Map. 
 	class NesMapper
 	{
-		private:
+		protected:
+
+			UInt8 ProgramBanks = 0;
+			UInt8 CharacterBanks = 0;
 
 		public:
 
+			//Constructor
+			NesMapper(UInt8 ProgramChunks, UInt8 CharacterChunks);
+
 			//CPU Read/Write Functions
-			virtual void CPUReadRam() = 0;
-			virtual void CPUWriteRam() = 0;
+			virtual bool CPUReadRam(UInt16 Address, UInt32& MappedAddress) = 0;
+			virtual bool CPUWriteRam(UInt16 Address, UInt32& MappedAddress) = 0;
 
 			//PPU Read/Write Functions
-			virtual void PPUReadRam() = 0;
-			virtual void PPUWriteRam() = 0;
+			virtual bool PPUReadRam(UInt16 Address, UInt32& MappedAddress) = 0;
+			virtual bool PPUWriteRam(UInt16 Address, UInt32& MappedAddress) = 0;
 	};
 }

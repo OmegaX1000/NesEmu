@@ -43,6 +43,9 @@ luac.out
 **/bin/
 Build/
 
+# Program Folder.
+Assets/Programs/
+
 # Log Files
 *.log
 

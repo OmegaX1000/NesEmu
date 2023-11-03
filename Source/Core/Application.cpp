@@ -2,10 +2,13 @@
 
 namespace NesEmulator
 {
+	Application* Application::Instance = nullptr;
+
 	Application::Application() : MainWindow(nullptr)
 	{
 		if (SDL_Init(SDL_INIT_EVERYTHING) == 0)
 		{
+			this->Instance = this;
 			MainWindow = SDL_CreateWindow(WindowTitle.c_str(), SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, WindowWidth, WindowHeight, WindowFlags);
 
 			CORE_TRACE("SDL Initalized!");
@@ -18,6 +21,8 @@ namespace NesEmulator
 
 			GraphicsSystem.InitalizeRenderer(MainWindow, Diligent::RENDER_DEVICE_TYPE_D3D12);
 			GuiLayer.ImGuiCreate(GraphicsSystem.GetDevice(), GraphicsSystem.GetSwapChain());
+
+			NesMachine.InsertCartridge("F:/OmegaGamingHunters Folder/TestNES Emulator/Assets/Programs/nestest.nes");
 		}
 	}
 	Application::~Application()
@@ -27,12 +32,22 @@ namespace NesEmulator
 		SDL_Quit();
 	}
 
+	Application& Application::Get()
+	{
+		return *Instance;
+	}
+
 	void Application::Run()
 	{
 		while (ProgramLoop)
 		{
 			HandleEvents();
 			GuiLayer.BeginFrame(MainWindow, GraphicsSystem.GetDevice(), GraphicsSystem.GetSwapChain());
+
+			//for (int i = 0; i < 100; i++)
+			{
+				//NesMachine.Clock(GraphicsSystem.GetDevice());
+			}
 
 			UpdateUI();
 
@@ -43,6 +58,8 @@ namespace NesEmulator
 	}
 	void Application::UpdateUI()
 	{
+		ImGui::DockSpaceOverViewport();
+
 		//Main Menu Bar
 		if (ImGui::BeginMainMenuBar())
 		{
@@ -70,11 +87,23 @@ namespace NesEmulator
 
 				ImGui::EndMenu();
 			}
+			if (ImGui::BeginMenu("Help"))
+			{
+				if (ImGui::MenuItem("About"))
+				{
+
+				}
+
+				ImGui::EndMenu();
+			}
 
 			ImGui::EndMainMenuBar();
 		}
 
-		NesMachine.DrawRamContents(0x0000);
+		NesMachine.GetPPU()->DrawVideo();
+		NesMachine.GetPPU()->DrawRegisters();
+		NesMachine.GetPPU()->DrawPatternTable();
+		NesMachine.GetPPU()->DrawPalettes();
 		NesMachine.GetCPU()->DrawRegisters();
 	}
 	void Application::HandleEvents()
@@ -91,7 +120,16 @@ namespace NesEmulator
 				{
 					if (Event.key.keysym.scancode == SDL_GetScancodeFromKey(SDLK_z))
 					{
-						NesMachine.GetCPU()->Clock();
+						for (int i = 0; i < 341; i++)
+						{
+							NesMachine.Clock(GraphicsSystem.GetDevice());
+						}
+						//NesMachine.GetCPU()->Clock();
+					}
+					else if (Event.key.keysym.scancode == SDL_GetScancodeFromKey(SDLK_x))
+					{
+						NesMachine.Clock(GraphicsSystem.GetDevice());
+						//NesMachine.GetCPU()->Clock();
 					}
 
 					break;

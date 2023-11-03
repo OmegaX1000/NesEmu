@@ -1,6 +1,7 @@
 #pragma once
 #include "Definitions.h"
-#include "NesMapper.h"
+
+#include "Mappers/NesMapper0.h"
 
 #include <vector>
 #include <string>
@@ -16,6 +17,9 @@ namespace NesEmulator
 			//Memory that holds code, data and sprites.
 			std::vector<UInt8> ProgramMemory;
 			std::vector<UInt8> CharacterMemory;
+
+			UInt8 ProgramBanks = 0;
+			UInt8 CharacterBanks = 0;
 
 			//Mapper
 			UInt16 MapperID = 0;
@@ -43,5 +47,11 @@ namespace NesEmulator
 
 			//Constructor, Basically Inserts a New Game.
 			NesCartridge(std::string_view ProgramPath);
+
+			//RAM Functions
+			bool CPUWrite(UInt16 Address, UInt8 Data);		 //CPU WriteRam Function.
+			bool CPURead(UInt16 Address, UInt8 &ReturnData); //CPU ReadRam Function.
+			bool PPUWrite(UInt16 Address, UInt8 Data);		 //PPU WriteRam Function.
+			bool PPURead(UInt16 Address, UInt8 &ReturnData); //PPU ReadRam Function.
 	};
 }

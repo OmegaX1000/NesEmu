@@ -11,11 +11,16 @@ namespace NesEmulator
 {
 	class Application
 	{
-		private:
-			//Application Properties.
-			NesConsole NesMachine;
+		public:
 			RenderSystem GraphicsSystem;
 			ImGuiLayer GuiLayer;
+
+		private:
+
+			static Application* Instance;
+
+			//Application Properties.
+			NesConsole NesMachine;
 			bool ProgramLoop = true;
 
 			//Window Properties.
@@ -30,6 +35,8 @@ namespace NesEmulator
 			//Constructor & Destructor.
 			Application();
 			~Application();
+
+			static Application& Get();
 
 			void Run();
 			void UpdateUI();

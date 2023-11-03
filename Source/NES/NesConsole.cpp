@@ -1,4 +1,5 @@
 #include "NesConsole.h"
+#include "Application.h"
 
 namespace NesEmulator
 {
@@ -13,72 +14,93 @@ namespace NesEmulator
 		}
 
 		//Empty Write function
-		MemoryViewer.WriteFn = [](ImU8* data, size_t off, ImU8 d)
-		{
+		//MemoryViewer.WriteFn = [](ImU8* data, size_t off, ImU8 d)
+		//{
 
-		};
-
-		//Testing Instructions
-		//std::string TestPath = "F:/OmegaGamingHunters Folder/TestNES Emulator/Assets/Programs/nestest.nes";
-		//std::ifstream ProgramFile(TestPath, std::ifstream::binary);
-		//ProgramFile.seekg(0x10);
-		//ProgramFile.read((char*)Ram + 0x8000, 0x4000);
-		//ProgramFile.seekg(0x10);
-		//ProgramFile.read((char*)Ram + 0xC000, 0x4000);
-
-		//Set our interrupt Vectors.
-		Ram[0xFFFC] = 0x00;
-		Ram[0xFFFD] = 0x80;
-
-		//Trigger Reset Interrupt.
-		CPU.Reset();
+		//};
 	}
 
-	void NesConsole::WriteRAM(UInt16 Address, UInt8 Data)
+	void NesConsole::Clock(Diligent::IRenderDevice* RenderDevice)
 	{
-		if (Address >= 0x0000 && Address <= 0xFFFF)
+		PPU.Clock(RenderDevice);
+
+		if (SystemClockCounter % 3 == 0)
 		{
-			Ram[Address] = Data;
-		}
-	}
-	UInt8 NesConsole::ReadRAM(UInt16 Address)
-	{
-		if (Address >= 0x0000 && Address <= 0xFFFF)
-		{
-			return Ram[Address];
+			CPU.Clock();
 		}
 
-		return 0x00;
+		SystemClockCounter++;
+
+		if (PPU.NMI == true)
+		{
+			CPU.NMI();
+			PPU.NMI = false;
+		}
 	}
 	void NesConsole::InsertCartridge(std::string_view NewCartPath)
 	{
 		this->Cartridge = std::make_shared<NesCartridge>(NewCartPath);
+		PPU.ConnectCartridge(this->Cartridge);
+		CPU.Reset();
+		PPU.Reset();
+
+		PPU.UpdateDebugPatternTable(Application::Get().GraphicsSystem.GetDevice());
+	}
+
+	void NesConsole::CPUWrite(UInt16 Address, UInt8 Data)
+	{
+		if (Cartridge->CPUWrite(Address, Data))
+		{
+
+		}
+		else if (Address >= 0x0000 && Address <= 0x1FFF)
+		{
+			Ram[Address & 0x0800] = Data;
+		}
+		else if (Address >= 0x2000 && Address <= 0x3FFF)
+		{
+			PPU.CPUWrite(Address & 0x07, Data);
+		}
+		else if (Address >= 0x4000 && Address <= 0x4017)
+		{
+			
+		}
+	}
+	UInt8 NesConsole::CPURead(UInt16 Address)
+	{
+		UInt8 ReturnData = 0;
+
+		if (Cartridge->CPURead(Address, ReturnData))
+		{
+
+		}
+		if (Address >= 0x0000 && Address <= 0x1FFF)
+		{
+			ReturnData = Ram[Address & 0x0800];
+		}
+		else if (Address >= 0x2000 && Address <= 0x3FFF)
+		{
+			ReturnData = PPU.CPURead(Address & 0x07);
+		}
+		else if (Address >= 0x4000 && Address <= 0x4017)
+		{
+			
+		}
+
+		return ReturnData;
 	}
 
 	void NesConsole::DrawRamContents(int StartAddress)
 	{
-		ImGui::Begin("RAM Contents");
-
-		MemoryViewer.DrawContents(Ram, 65536, StartAddress);
-		/*
-		for (int x = 0; x < Rows; x++)
-		{
-			std::string Line = fmt::format("${:#04X}:", Ram[StartAddress]);
-
-			for (int col = 0; col < Columns; col++)
-			{
-				Line += fmt::format(" {:#04X}", Ram[StartAddress]);
-				StartAddress++;
-			}
-
-			ImGui::Text(Line.c_str());
-		}*/
-
-		ImGui::End();
+		
 	}
 
 	NesCPU* NesConsole::GetCPU()
 	{
 		return &CPU;
+	}
+	NesPPU* NesConsole::GetPPU()
+	{
+		return &PPU;
 	}
 }

@@ -1,5 +1,6 @@
 #pragma once
 #include "NesCPU.h"
+#include "NesPPU.h"
 #include "NesCartridge.h"
 #include "imgui.h"
 #include "imgui_memory_editor.h"
@@ -14,28 +15,36 @@ namespace NesEmulator
 	class NesConsole
 	{
 		private:
-			NesCPU CPU;		  //The CPU (6502)
-			UInt8 Ram[65536]; //Our 64Kb of RAM
+			//Devices.
+			NesCPU CPU;	//The CPU (6502)
+			NesPPU PPU;	//The PPU
+
+			UInt32 SystemClockCounter = 0;
+
+			//Memory
+			UInt8 Ram[2048]; //The CPU internal ram. (2Kb)
+			//UInt8 ControllerOne;
+			//UInt8 ControllerTwo;
 
 			//The Cartridge that holds our Program.
 			std::shared_ptr<NesCartridge> Cartridge;
-
-			//Debug Stuff
-			MemoryEditor MemoryViewer;
 
 		public:
 
 			//Constructor & Destructor
 			NesConsole();
 
-			//RAM Functions
-			void WriteRAM(UInt16 Address, UInt8 Data); //CPU WriteRam Function.
-			UInt8 ReadRAM(UInt16 Address);			   //CPU ReadRam Function.
-
+			//Other Functions
+			void Clock(Diligent::IRenderDevice* RenderDevice);
 			void InsertCartridge(std::string_view NewCartPath);
+
+			//RAM Functions
+			void CPUWrite(UInt16 Address, UInt8 Data); //CPU WriteRam Function.
+			UInt8 CPURead(UInt16 Address);			   //CPU ReadRam Function.
 
 			//Device Getters
 			NesCPU* GetCPU();
+			NesPPU* GetPPU();
 
 			//Debug Functions
 			void DrawRamContents(int StartAddress);

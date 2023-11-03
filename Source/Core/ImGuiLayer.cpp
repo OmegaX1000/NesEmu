@@ -275,6 +275,8 @@ namespace NesEmulator
 		PSOCreateInfo.PSODesc.ResourceLayout.NumVariables = _countof(Variables);
 
 		Diligent::SamplerDesc SamLinearWrap;
+		SamLinearWrap.MinFilter = Diligent::FILTER_TYPE_POINT;
+		SamLinearWrap.MagFilter = Diligent::FILTER_TYPE_POINT;
 		SamLinearWrap.AddressU = Diligent::TEXTURE_ADDRESS_WRAP;
 		SamLinearWrap.AddressV = Diligent::TEXTURE_ADDRESS_WRAP;
 		SamLinearWrap.AddressW = Diligent::TEXTURE_ADDRESS_WRAP;

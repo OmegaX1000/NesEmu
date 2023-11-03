@@ -1939,7 +1939,7 @@ CPU->ProgramCounter++;
 					{
 						CPU->CycleRemain++;
 						CPU->ProgramCounter++;
-						UInt8 Offset = CPU->ReadRAM(CPU->ProgramCounter);
+						Int8 Offset = CPU->ReadRAM(CPU->ProgramCounter);
 						CPU->ProgramCounter++;
 						UInt16 NewAddress = CPU->ProgramCounter + Offset;
 
@@ -1961,7 +1961,7 @@ CPU->ProgramCounter++;
 					{
 						CPU->CycleRemain++;
 						CPU->ProgramCounter++;
-						UInt8 Offset = CPU->ReadRAM(CPU->ProgramCounter);
+						Int8 Offset = CPU->ReadRAM(CPU->ProgramCounter);
 						CPU->ProgramCounter++;
 						UInt16 NewAddress = CPU->ProgramCounter + Offset;
 
@@ -1983,7 +1983,7 @@ CPU->ProgramCounter++;
 					{
 						CPU->CycleRemain++;
 						CPU->ProgramCounter++;
-						UInt8 Offset = CPU->ReadRAM(CPU->ProgramCounter);
+						Int8 Offset = CPU->ReadRAM(CPU->ProgramCounter);
 						CPU->ProgramCounter++;
 						UInt16 NewAddress = CPU->ProgramCounter + Offset;
 
@@ -2005,7 +2005,7 @@ CPU->ProgramCounter++;
 					{
 						CPU->CycleRemain++;
 						CPU->ProgramCounter++;
-						UInt8 Offset = CPU->ReadRAM(CPU->ProgramCounter);
+						Int8 Offset = CPU->ReadRAM(CPU->ProgramCounter);
 						CPU->ProgramCounter++;
 						UInt16 NewAddress = CPU->ProgramCounter + Offset;
 
@@ -2027,7 +2027,7 @@ CPU->ProgramCounter++;
 					{
 						CPU->CycleRemain++;
 						CPU->ProgramCounter++;
-						UInt8 Offset = CPU->ReadRAM(CPU->ProgramCounter);
+						Int8 Offset = CPU->ReadRAM(CPU->ProgramCounter);
 						CPU->ProgramCounter++;
 						UInt16 NewAddress = CPU->ProgramCounter + Offset;
 
@@ -2049,7 +2049,7 @@ CPU->ProgramCounter++;
 					{
 						CPU->CycleRemain++;
 						CPU->ProgramCounter++;
-						UInt8 Offset = CPU->ReadRAM(CPU->ProgramCounter);
+						Int8 Offset = CPU->ReadRAM(CPU->ProgramCounter);
 						CPU->ProgramCounter++;
 						UInt16 NewAddress = CPU->ProgramCounter + Offset;
 
@@ -2071,7 +2071,7 @@ CPU->ProgramCounter++;
 					{
 						CPU->CycleRemain++;
 						CPU->ProgramCounter++;
-						UInt8 Offset = CPU->ReadRAM(CPU->ProgramCounter);
+						Int8 Offset = CPU->ReadRAM(CPU->ProgramCounter);
 						CPU->ProgramCounter++;
 						UInt16 NewAddress = CPU->ProgramCounter + Offset;
 
@@ -2093,7 +2093,7 @@ CPU->ProgramCounter++;
 					{
 						CPU->CycleRemain++;
 						CPU->ProgramCounter++;
-						UInt8 Offset = CPU->ReadRAM(CPU->ProgramCounter);
+						Int8 Offset = CPU->ReadRAM(CPU->ProgramCounter);
 						CPU->ProgramCounter++;
 						UInt16 NewAddress = CPU->ProgramCounter + Offset;
 
@@ -2336,11 +2336,11 @@ CPU->ProgramCounter++;
 	}
 	void NesCPU::WriteRAM(UInt16 Address, UInt8 Data)
 	{
-		System->WriteRAM(Address, Data);
+		System->CPUWrite(Address, Data);
 	}
 	UInt8 NesCPU::ReadRAM(UInt16 Address)
 	{
-		return System->ReadRAM(Address);
+		return System->CPURead(Address);
 	}
 
 	void NesCPU::Clock()
@@ -2351,19 +2351,6 @@ CPU->ProgramCounter++;
 
 			UInt8 OperandOne = (CurrOp->Size >= 2) ? ReadRAM(ProgramCounter + 1) : 0x00;
 			UInt8 OperandTwo = (CurrOp->Size == 3) ? ReadRAM(ProgramCounter + 2) : 0x00;
-
-			if (CurrOp->Size == 2)
-			{
-				CLIENT_TRACE("{:X}  {:02X} {:02X}     {}    A:{:02X} X:{:02X} Y:{:02X} P:{:02X} SP:{:02X} PPU:  0, 0 CYC:{}", ProgramCounter, CurrOp->Opcode, OperandOne, CurrOp->Name, Accumulator, Index_X, Index_Y, StatusFlags, StackPointer, CycleCounter);
-			}
-			else if (CurrOp->Size == 3)
-			{
-				CLIENT_TRACE("{:X}  {:02X} {:02X} {:02X}  {}    A:{:02X} X:{:02X} Y:{:02X} P:{:02X} SP:{:02X} PPU:  0, 0 CYC:{}", ProgramCounter, CurrOp->Opcode, OperandOne, OperandTwo, CurrOp->Name, Accumulator, Index_X, Index_Y, StatusFlags, StackPointer, CycleCounter);
-			}
-			else
-			{
-				CLIENT_TRACE("{:X}  {:02X}        {}    A:{:02X} X:{:02X} Y:{:02X} P:{:02X} SP:{:02X} PPU:  0, 0 CYC:{}", ProgramCounter, CurrOp->Opcode, CurrOp->Name, Accumulator, Index_X, Index_Y, StatusFlags, StackPointer, CycleCounter);
-			}
 
 			if (CurrOp->OpFunc != nullptr)
 			{
@@ -2395,11 +2382,51 @@ CPU->ProgramCounter++;
 	}
 	void NesCPU::NMI()
 	{
+		//Get our address from the reset vector.
+		UInt8 LowByte = ReadRAM(0xFFFA);
+		UInt8 HighByte = ReadRAM(0xFFFB);
 
+		UInt8 temp = ReadRAM(ProgramCounter);
+		ProgramCounter++;
+
+		SetFlag(Interrupt, true);
+		WriteRAM(0x0100 + StackPointer, (ProgramCounter >> 8) & 0x00FF);
+		StackPointer--;
+		WriteRAM(0x0100 + StackPointer, ProgramCounter & 0x00FF);
+		StackPointer--;
+
+		SetFlag(Unsed, true);
+		WriteRAM(0x0100 + StackPointer, StatusFlags);
+		StackPointer--;
+
+		ProgramCounter = (HighByte << 8) | LowByte; //Start Location.
+		CycleRemain = 8;
 	}
 	void NesCPU::IRQ()
 	{
+		if (GetFlag(Interrupt) == 0)
+		{
+			//Get our address from the reset vector.
+			UInt8 LowByte = ReadRAM(0xFFFE);
+			UInt8 HighByte = ReadRAM(0xFFFF);
 
+			UInt8 temp = ReadRAM(ProgramCounter);
+			ProgramCounter++;
+
+			SetFlag(Interrupt, true);
+			WriteRAM(0x0100 + StackPointer, (ProgramCounter >> 8) & 0x00FF);
+			StackPointer--;
+			WriteRAM(0x0100 + StackPointer, ProgramCounter & 0x00FF);
+			StackPointer--;
+
+			SetFlag(Unsed, true);
+			SetFlag(Break, false);
+			WriteRAM(0x0100 + StackPointer, StatusFlags);
+			StackPointer--;
+
+			ProgramCounter = (HighByte << 8) | LowByte; //Start Location.
+			CycleRemain = 7;
+		}
 	}
 
 	UInt8 NesCPU::GetFlag(StatusFlag Flag)
