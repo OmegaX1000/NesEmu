@@ -40,6 +40,11 @@ namespace NesEmulator
 				//Read File header
 				ProgramFile.read((char*)&Header, sizeof(Header));
 
+				//Mirror Mode
+				UInt8 MirrorTemp = Header.MapperFlags1 & 0x01;
+				UInt8 IsFourScreen = Header.MapperFlags1 & 0x08;
+				HardwareMirrorMode = (Mirror)(MirrorTemp + IsFourScreen);
+
 				//Trainer Area.
 				if (Header.MapperFlags1 & 0x04)
 				{
@@ -140,5 +145,10 @@ namespace NesEmulator
 		}
 
 		return false;
+	}
+
+	Mirror NesCartridge::GetMirrorMode()
+	{
+		return HardwareMirrorMode;
 	}
 }

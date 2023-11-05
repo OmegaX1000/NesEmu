@@ -40,13 +40,14 @@ namespace NesEmulator
 			UInt8  OAM_DMA	   = 0;
 
 			//Background Registers
-			UInt16 VRAMaddr = 0;
 			UInt16 TempVRaddr = 0;
 			UInt8 FineScrollX = 0;
 			bool WriteToggle = false;
 
 			UInt16 HighBGtileInfo = 0;
 			UInt16 LowBGtileInfo = 0;
+			UInt8 LowAttributeByte = 0;
+			UInt8 HighAttributeByte = 0;
 
 			//Sprite Registers
 

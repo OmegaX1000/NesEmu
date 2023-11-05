@@ -31,7 +31,7 @@ namespace NesEmulator
 
 		SystemClockCounter++;
 
-		if (PPU.NMI == true)
+		if (CPU.Jam == false && PPU.NMI == true)
 		{
 			CPU.NMI();
 			PPU.NMI = false;

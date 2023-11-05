@@ -1,4 +1,5 @@
 #include "NesPPU.h"
+#include "imgui_memory_editor.h"
 
 namespace NesEmulator
 {
@@ -37,11 +38,6 @@ namespace NesEmulator
 
 		PaletteFile.close();
 
-		PaletteRAM[0x00] = 0x22;
-		PaletteRAM[0x01] = 0x29;
-		PaletteRAM[0x02] = 0x1A;
-		PaletteRAM[0x03] = 0x0F;
-
 		//Allocate our pixel data.
 		PixelOutputData = new UInt8[245760];
 		std::fill_n(PixelOutputData, 245760, 0);
@@ -55,11 +51,35 @@ namespace NesEmulator
 			if (ScanlineCounter == -1 && PixelCounter == 1)
 			{
 				Status = Status & ~((UInt8)1 << 7);
+
+				//Also fetch data for the nexst two tiles.
+				UInt8 TileAddress = PPURead(0x2000 | (PPUAddress & 0xFFF));
+				UInt8 AttributeAddress = PPURead(0x23C0 | (PPUAddress & 0x0C00) | ((PPUAddress >> 4) & 0x38) | ((PPUAddress >> 2) & 0x07));
+				UInt8 PatternTableLow = PPURead((Controller & 0x10) ? (0x1000 + (TileAddress * 16)): (0x000 + (TileAddress * 16)));
+				UInt8 PatternTableHigh = PPURead((Controller & 0x10) ? (0x1000 + (TileAddress * 16) + 8) : (0x000 + (TileAddress * 16) + 8));
 			}
 		}
 		else if (ScanlineCounter >= 0 && ScanlineCounter <= 239)
 		{
-		
+			if (PixelCounter >= 1 && PixelCounter <= 256)
+			{
+				if (PixelCounter % 8 == 0)
+				{
+
+				}
+			}
+			else if (PixelCounter >= 257 && PixelCounter <= 320)
+			{
+
+			}
+			else if (PixelCounter >= 321 && PixelCounter <= 336)
+			{
+
+			}
+			else if (PixelCounter >= 337 && PixelCounter <= 340)
+			{
+
+			}
 		}
 		else if (ScanlineCounter == 240)
 		{
@@ -73,8 +93,6 @@ namespace NesEmulator
 				//Turn on at the second tick of the scanline.
 				Status |= 0x80;
 
-				EvenFrames = !EvenFrames;
-
 				if (Controller & 0x80)
 				{
 					NMI = true;
@@ -86,12 +104,19 @@ namespace NesEmulator
 		PixelCounter++;
 		ClockCounter++;
 
+		//Shift Our Registers.
+		HighBGtileInfo >>= 1;
+		LowBGtileInfo >>= 1;
+		HighAttributeByte >>= 1;
+		LowAttributeByte >>= 1;
+
 		//Increment the Scanline Counter every 341 Cycles.
 		if (PixelCounter >= 341)
 		{
 			if (ScanlineCounter == 261)
 			{
 				ScanlineCounter = -1;
+				EvenFrames = !EvenFrames;
 				PixelCounter = 0;
 			}
 			else
@@ -176,8 +201,7 @@ namespace NesEmulator
 			}
 			case 0x007: 
 			{
-				PPUData = Data; 
-				PPUWrite(PPUAddress, PPUData);
+				PPUWrite(PPUAddress, Data);
 
 				UInt8 Increment = (Controller & 0x04) ? 32 : 1;
 				PPUAddress += Increment;
@@ -195,15 +219,17 @@ namespace NesEmulator
 			case 0x001: break;
 			case 0x002: 
 			{
-				Data = Status;
+				Data = Status & 0xE0;
 				Status = Status & ~((UInt8)1 << 7);
 				WriteToggle = false;
+
 				break;
 			}
 			case 0x003: break;
 			case 0x004: 
 			{
 				Data = OAM_Data;
+
 				break;
 			}
 			case 0x005: return 0x00; break;
@@ -211,8 +237,10 @@ namespace NesEmulator
 			case 0x007: 
 			{
 				Data = PPUData;
+				PPUData = PPURead(PPUAddress);
 				UInt8 Increment = (Controller & 0x04) ? 32 : 1;
 				PPUAddress += Increment;
+
 				break;
 			}
 		}
@@ -227,11 +255,69 @@ namespace NesEmulator
 		}
 		else if (Address >= 0x2000 && Address <= 0x3EFF)
 		{
-			UInt8 TableNum = floor(((Address - 0x2000) & 0x1000) / 0x400);
-			NameTable[TableNum][Address & 0x0400] = Data;
+			Address &= 0x0FFF;
+
+			if (Cartridge->GetMirrorMode() == Vertical)
+			{
+				// Vertical
+				if (Address >= 0x0000 && Address <= 0x03FF)
+				{
+					NameTable[0][Address & 0x03FF] = Data;
+				}
+				else if (Address >= 0x0400 && Address <= 0x07FF)
+				{
+					NameTable[1][Address & 0x03FF] = Data;
+				}
+				else if (Address >= 0x0800 && Address <= 0x0BFF)
+				{
+					NameTable[0][Address & 0x03FF] = Data;
+				}
+				else if (Address >= 0x0C00 && Address <= 0x0FFF)
+				{
+					NameTable[1][Address & 0x03FF] = Data;
+				}
+			}
+			else if (Cartridge->GetMirrorMode() == Horizontal)
+			{
+				if (Address >= 0x0000 && Address <= 0x03FF)
+				{
+					NameTable[0][Address & 0x03FF] = Data;
+				}
+				else if (Address >= 0x0400 && Address <= 0x07FF)
+				{
+					NameTable[0][Address & 0x03FF] = Data;
+				}
+				else if (Address >= 0x0800 && Address <= 0x0BFF)
+				{
+					NameTable[1][Address & 0x03FF] = Data;
+				}
+				else if (Address >= 0x0C00 && Address <= 0x0FFF)
+				{
+					NameTable[1][Address & 0x03FF] = Data;
+				}
+			}
 		}
 		else if (Address >= 0x3F00 && Address <= 0x3FFF)
 		{
+			Address &= 0x001F;
+
+			if (Address == 0x0010)
+			{
+				Address = 0x0000;
+			}
+			else if (Address == 0x0014)
+			{
+				Address = 0x0004;
+			}
+			else if (Address == 0x0018)
+			{
+				Address = 0x0008;
+			}
+			else if (Address == 0x001C)
+			{
+				Address = 0x000C;
+			}
+
 			PaletteRAM[Address] = Data;
 		}
 	}
@@ -250,7 +336,26 @@ namespace NesEmulator
 		}
 		else if (Address >= 0x3F00 && Address <= 0x3FFF)
 		{
-			ReturnData = PaletteRAM[Address];
+			Address &= 0x001F;
+
+			if (Address == 0x0010)
+			{
+				Address = 0x0000;
+			}
+			else if (Address == 0x0014)
+			{
+				Address = 0x0004;
+			}
+			else if (Address == 0x0018)
+			{
+				Address = 0x0008;
+			}
+			else if (Address == 0x001C)
+			{
+				Address = 0x000C;
+			}
+
+			ReturnData = PaletteRAM[Address] & ((Mask & 0x01) ? 0x30 : 0x3F);
 		}
 
 		return ReturnData;
@@ -384,7 +489,31 @@ namespace NesEmulator
 
 		for (UInt8 i = 0; i < 32; i++)
 		{
-			ImGui::ColorEdit4("##Color", &PaletteColors[PaletteRAM[i]].x, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoPicker | ImGuiColorEditFlags_NoDragDrop | ImGuiColorEditFlags_NoLabel);
+			//Get Palette
+			UInt8 SelectedPalette = 0;
+
+			if (i == 0x0010)
+			{
+				SelectedPalette = 0;
+			}
+			else if (i == 0x0014)
+			{
+				SelectedPalette = 0x0004;
+			}
+			else if (i == 0x0018)
+			{
+				SelectedPalette = 0x0008;
+			}
+			else if (i == 0x001C)
+			{
+				SelectedPalette = 0x000C;
+			}
+			else
+			{
+				SelectedPalette = i;
+			}
+
+			ImGui::ColorEdit4("##Color", &PaletteColors[PaletteRAM[SelectedPalette]].x, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoPicker | ImGuiColorEditFlags_NoDragDrop | ImGuiColorEditFlags_NoLabel);
 
 			if ((i + 1) % 16 != 0)
 			{
@@ -401,7 +530,11 @@ namespace NesEmulator
 	}
 	void NesPPU::DrawNametable()
 	{
+		static MemoryEditor NameTableView;
 
+		ImGui::Begin("Nametable");
+		NameTableView.DrawContents(NameTable[0], 1024, 0x0000);
+		ImGui::End();
 	}
 
 	void NesPPU::UpdateDebugPatternTable(Diligent::IRenderDevice* RenderDevice)

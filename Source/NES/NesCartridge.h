@@ -24,6 +24,7 @@ namespace NesEmulator
 			//Mapper
 			UInt16 MapperID = 0;
 			std::shared_ptr<NesMapper> Mapper;
+			Mirror HardwareMirrorMode = Mirror::Horizontal;
 
 			//16 Byte Header for .nes Files.
 			struct FileHeader
@@ -53,5 +54,8 @@ namespace NesEmulator
 			bool CPURead(UInt16 Address, UInt8 &ReturnData); //CPU ReadRam Function.
 			bool PPUWrite(UInt16 Address, UInt8 Data);		 //PPU WriteRam Function.
 			bool PPURead(UInt16 Address, UInt8 &ReturnData); //PPU ReadRam Function.
+
+			//Other Functions
+			Mirror GetMirrorMode();
 	};
 }

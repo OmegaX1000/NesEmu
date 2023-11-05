@@ -45,6 +45,7 @@ namespace NesEmulator
 			//Helper Variables/Functions for executing instructions.
 			void Fetch();
 			Instruction* CurrOp = nullptr;
+			bool Jam = false;
 			UInt8 CycleRemain = 0;
 
 			//CPU Registers

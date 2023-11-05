@@ -3,6 +3,13 @@
 
 namespace NesEmulator
 {
+	enum Mirror
+	{
+		Horizontal,
+		Vertical,
+		FourScreen
+	};
+
 	//The mapper is responsible for mapping the Memory to the CPU and PPU Memory Map. 
 	class NesMapper
 	{

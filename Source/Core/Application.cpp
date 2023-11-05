@@ -103,6 +103,7 @@ namespace NesEmulator
 		NesMachine.GetPPU()->DrawVideo();
 		NesMachine.GetPPU()->DrawRegisters();
 		NesMachine.GetPPU()->DrawPatternTable();
+		NesMachine.GetPPU()->DrawNametable();
 		NesMachine.GetPPU()->DrawPalettes();
 		NesMachine.GetCPU()->DrawRegisters();
 	}
@@ -124,11 +125,14 @@ namespace NesEmulator
 						{
 							NesMachine.Clock(GraphicsSystem.GetDevice());
 						}
+
+						NesMachine.GetPPU()->UpdateDebugPatternTable(GraphicsSystem.GetDevice());
 						//NesMachine.GetCPU()->Clock();
 					}
 					else if (Event.key.keysym.scancode == SDL_GetScancodeFromKey(SDLK_x))
 					{
 						NesMachine.Clock(GraphicsSystem.GetDevice());
+						NesMachine.GetPPU()->UpdateDebugPatternTable(GraphicsSystem.GetDevice());
 						//NesMachine.GetCPU()->Clock();
 					}
 
