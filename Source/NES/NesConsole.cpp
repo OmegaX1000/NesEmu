@@ -20,9 +20,9 @@ namespace NesEmulator
 		//};
 	}
 
-	void NesConsole::Clock(Diligent::IRenderDevice* RenderDevice)
+	void NesConsole::Clock(Diligent::IRenderDevice* RenderDevice, Diligent::IDeviceContext* Context)
 	{
-		PPU.Clock(RenderDevice);
+		PPU.Clock(RenderDevice, Context);
 
 		if (SystemClockCounter % 3 == 0)
 		{
@@ -55,7 +55,7 @@ namespace NesEmulator
 		}
 		else if (Address >= 0x0000 && Address <= 0x1FFF)
 		{
-			Ram[Address & 0x0800] = Data;
+			Ram[Address & 0x07FF] = Data;
 		}
 		else if (Address >= 0x2000 && Address <= 0x3FFF)
 		{
@@ -76,7 +76,7 @@ namespace NesEmulator
 		}
 		if (Address >= 0x0000 && Address <= 0x1FFF)
 		{
-			ReturnData = Ram[Address & 0x0800];
+			ReturnData = Ram[Address & 0x07FF];
 		}
 		else if (Address >= 0x2000 && Address <= 0x3FFF)
 		{

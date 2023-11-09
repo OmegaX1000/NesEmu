@@ -44,9 +44,9 @@ namespace NesEmulator
 			HandleEvents();
 			GuiLayer.BeginFrame(MainWindow, GraphicsSystem.GetDevice(), GraphicsSystem.GetSwapChain());
 
-			//for (int i = 0; i < 100; i++)
+			for (int i = 0; i < 89341; i++)
 			{
-				//NesMachine.Clock(GraphicsSystem.GetDevice());
+				NesMachine.Clock(GraphicsSystem.GetDevice(), GraphicsSystem.GetContext());
 			}
 
 			UpdateUI();
@@ -123,7 +123,7 @@ namespace NesEmulator
 					{
 						for (int i = 0; i < 341; i++)
 						{
-							NesMachine.Clock(GraphicsSystem.GetDevice());
+							NesMachine.Clock(GraphicsSystem.GetDevice(), GraphicsSystem.GetContext());
 						}
 
 						NesMachine.GetPPU()->UpdateDebugPatternTable(GraphicsSystem.GetDevice());
@@ -131,7 +131,7 @@ namespace NesEmulator
 					}
 					else if (Event.key.keysym.scancode == SDL_GetScancodeFromKey(SDLK_x))
 					{
-						NesMachine.Clock(GraphicsSystem.GetDevice());
+						NesMachine.Clock(GraphicsSystem.GetDevice(), GraphicsSystem.GetContext());
 						NesMachine.GetPPU()->UpdateDebugPatternTable(GraphicsSystem.GetDevice());
 						//NesMachine.GetCPU()->Clock();
 					}

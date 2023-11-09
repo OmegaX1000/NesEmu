@@ -35,7 +35,7 @@ namespace NesEmulator
 			NesConsole();
 
 			//Other Functions
-			void Clock(Diligent::IRenderDevice* RenderDevice);
+			void Clock(Diligent::IRenderDevice* RenderDevice, Diligent::IDeviceContext* Context);
 			void InsertCartridge(std::string_view NewCartPath);
 
 			//RAM Functions

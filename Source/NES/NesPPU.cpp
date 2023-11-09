@@ -42,50 +42,212 @@ namespace NesEmulator
 		PixelOutputData = new UInt8[245760];
 		std::fill_n(PixelOutputData, 245760, 0);
 	}
-
-	void NesPPU::Clock(Diligent::IRenderDevice* RenderDevice)
+	NesPPU::~NesPPU()
 	{
-		if (ScanlineCounter == -1 || ScanlineCounter == 261)
-		{
-			//Turn off VBlank
-			if (ScanlineCounter == -1 && PixelCounter == 1)
-			{
-				Status = Status & ~((UInt8)1 << 7);
+		delete[] PixelOutputData;
+	}
 
-				//Also fetch data for the nexst two tiles.
-				UInt8 TileAddress = PPURead(0x2000 | (PPUAddress & 0xFFF));
-				UInt8 AttributeAddress = PPURead(0x23C0 | (PPUAddress & 0x0C00) | ((PPUAddress >> 4) & 0x38) | ((PPUAddress >> 2) & 0x07));
-				UInt8 PatternTableLow = PPURead((Controller & 0x10) ? (0x1000 + (TileAddress * 16)): (0x000 + (TileAddress * 16)));
-				UInt8 PatternTableHigh = PPURead((Controller & 0x10) ? (0x1000 + (TileAddress * 16) + 8) : (0x000 + (TileAddress * 16) + 8));
-			}
-		}
-		else if (ScanlineCounter >= 0 && ScanlineCounter <= 239)
+	void NesPPU::Clock(Diligent::IRenderDevice* RenderDevice, Diligent::IDeviceContext* Context)
+	{
+		if (ScanlineCounter >= -1 && ScanlineCounter <= 240)
 		{
+			//Get the info needed to render a pixel (fetching bg tiles and sprites.
 			if (PixelCounter >= 1 && PixelCounter <= 256)
 			{
-				if (PixelCounter % 8 == 0)
+				//Disable Vertical Blank
+				if (ScanlineCounter == -1 && PixelCounter == 1)
 				{
+					Status = Status & ~((UInt8)1 << 7);
+				}
 
+				if (PixelCounter >= 2)
+				{
+					ShiftBGRegisters();
+				}
+
+				//Fetch tile data and load them into our shift registers every 8 cycles.
+				switch ((PixelCounter - 1) % 8)
+				{
+					case 0:
+					{
+						LoadBGShiftRegisters();
+						TileAddress = PPURead(0x2000 | (PPUAddress.Register & 0x0FFF));
+						break;
+					}
+					case 2:
+					{
+						AttributeByte = PPURead(0x23C0 | (PPUAddress.NameY << 11) | (PPUAddress.NameX << 10) | ((PPUAddress.CoarseY >> 2) << 3) | (PPUAddress.CoarseX >> 2));
+
+						if (PPUAddress.CoarseY & 0x02)
+						{
+							AttributeByte >>= 4;
+						}
+						if (PPUAddress.CoarseX & 0x02)
+						{
+							AttributeByte >>= 2;
+						}
+
+						AttributeByte &= 0x03;
+
+						break;
+					}
+					case 4:
+					{
+						PatternTableLow = PPURead((Controller.BGTableAddr << 12) + ((UInt16)TileAddress << 4) + (PPUAddress.FineY) + 0);
+						break;
+					}
+					case 6:
+					{
+						PatternTableHigh = PPURead((Controller.BGTableAddr << 12) + ((UInt16)TileAddress << 4) + (PPUAddress.FineY) + 8);
+						break;
+					}
+					case 7:
+					{
+						//Increment our XScoll, Ony if rendering is enabled
+						if (Mask & 0x08 || Mask & 0x10)
+						{
+							if ((PPUAddress.CoarseX & 0x1F) == 31)
+							{
+								//Leaving nametable so wrap address round
+								PPUAddress.CoarseX = 0;
+								//Flip target nametable bit
+								PPUAddress.NameX = ~PPUAddress.NameX;
+							}
+							else
+							{
+								// Staying in current nametable, so just increment
+								PPUAddress.CoarseX++;
+							}
+						}
+
+						break;
+					}
+				}
+
+				//At the end of the visible scanline, we scroll down.
+				if (PixelCounter == 256)
+				{
+					if (Mask & 0x08 || Mask & 0x10)
+					{
+						if (PPUAddress.FineY < 7)
+						{
+							PPUAddress.FineY++;
+						}
+						else
+						{
+							PPUAddress.FineY = 0;
+
+							//Check if we need to swap vertical nametable targets
+							if (PPUAddress.CoarseY == 29)
+							{
+								PPUAddress.CoarseY = 0;
+								PPUAddress.NameY = ~PPUAddress.NameY;
+							}
+							else if (PPUAddress.CoarseY == 31)
+							{
+								PPUAddress.CoarseY = 0;
+							}
+							else
+							{
+								PPUAddress.CoarseY++;
+							}
+						}
+					}
 				}
 			}
 			else if (PixelCounter >= 257 && PixelCounter <= 320)
 			{
+				if (PixelCounter == 257)
+				{
+					ShiftBGRegisters();
+					LoadBGShiftRegisters();
 
+					//Ony if rendering is enabled
+					if (Mask & 0x08 || Mask & 0x10)
+					{
+						PPUAddress.NameX = TempVRaddr.NameX;
+						PPUAddress.CoarseX = TempVRaddr.CoarseX;
+					}
+				}
+
+				if (ScanlineCounter == -1 && PixelCounter >= 280 && PixelCounter < 305)
+				{
+					//Ony if rendering is enabled
+					if (Mask & 0x08 || Mask & 0x10)
+					{
+						PPUAddress.FineY = TempVRaddr.FineY;
+						PPUAddress.NameY = TempVRaddr.NameY;
+						PPUAddress.CoarseY = TempVRaddr.CoarseY;
+					}
+				}
 			}
 			else if (PixelCounter >= 321 && PixelCounter <= 336)
 			{
+				ShiftBGRegisters();
 
+				//Fetch tile data and load them into our shift registers every 8 cycles.
+				switch ((PixelCounter - 1) % 8)
+				{
+					case 0:
+					{
+						LoadBGShiftRegisters();
+						TileAddress = PPURead(0x2000 | (PPUAddress.Register & 0x0FFF));
+						break;
+					}
+					case 2:
+					{
+						AttributeByte = PPURead(0x23C0 | (PPUAddress.NameY << 11) | (PPUAddress.NameX << 10) | ((PPUAddress.CoarseY >> 2) << 3) | (PPUAddress.CoarseX >> 2));
+
+						if (PPUAddress.CoarseY & 0x02) AttributeByte >>= 4;
+						if (PPUAddress.CoarseX & 0x02) AttributeByte >>= 2;
+						AttributeByte &= 0x03;
+
+						break;
+					}
+					case 4:
+					{
+						PatternTableLow = PPURead((Controller.BGTableAddr << 12) + ((UInt16)TileAddress << 4) + (PPUAddress.FineY) + 0);
+						break;
+					}
+					case 6:
+					{
+						PatternTableHigh = PPURead((Controller.BGTableAddr << 12) + ((UInt16)TileAddress << 4) + (PPUAddress.FineY) + 8);
+						break;
+					}
+					case 7:
+					{
+						//Increment our XScoll, Ony if rendering is enabled
+						if (Mask & 0x08 || Mask & 0x10)
+						{
+							if ((PPUAddress.CoarseX & 0x1F) == 31)
+							{
+								//Leaving nametable so wrap address round
+								PPUAddress.CoarseX = 0;
+								//Flip target nametable bit
+								PPUAddress.NameX = ~PPUAddress.NameX;
+							}
+							else
+							{
+								// Staying in current nametable, so just increment
+								PPUAddress.CoarseX++;
+							}
+						}
+
+						break;
+					}
+				}
 			}
 			else if (PixelCounter >= 337 && PixelCounter <= 340)
 			{
+				ShiftBGRegisters();
 
+				if (PixelCounter == 338 || PixelCounter == 340)
+				{
+					TileAddress = PPURead(0x2000 | (PPUAddress.Register & 0x0FFF));
+				}
 			}
 		}
-		else if (ScanlineCounter == 240)
-		{
-
-		}
-		else if (ScanlineCounter >= 241 && ScanlineCounter <= 260)
+		else if (ScanlineCounter >= 241 && ScanlineCounter < 261)
 		{
 			//Turn on VBlanking
 			if (ScanlineCounter == 241 && PixelCounter == 1)
@@ -93,22 +255,58 @@ namespace NesEmulator
 				//Turn on at the second tick of the scanline.
 				Status |= 0x80;
 
-				if (Controller & 0x80)
+				if (Controller.NMIEnable)
 				{
 					NMI = true;
 				}
+
+				UpdateVideoOutput(RenderDevice, Context);
 			}
 		}
 
-		UpdateVideoOutput(RenderDevice);
+		//Create our pixel.
+		UInt8 PixelIndex = 0x00;   //The 2-bit pixel to be rendered
+		UInt8 PaletteIndex = 0x00; //The 3-bit index of the palette the pixel indexes
+
+		if (Mask & 0x08)
+		{
+			UInt16 bit_mux = 0x8000 >> Scroll;
+
+			UInt8 PixIndexLow = (LowBGtileInfo & bit_mux) > 0;
+			UInt8 PixIndexHigh = (HighBGtileInfo & bit_mux) > 0;
+
+			//Combine to form pixel index
+			PixelIndex = (PixIndexHigh << 1) | PixIndexLow;
+
+			//Get palette
+			UInt8 PalIndexLow = (LowAttributeByte & bit_mux) > 0;
+			UInt8 PalIndexHigh = (HighAttributeByte & bit_mux) > 0;
+			PaletteIndex = (PalIndexHigh << 1) | PalIndexLow;
+		}
+
+		UInt8 PalatteSelect = PPURead(0x3F00 + (PaletteIndex << 2) + PixelIndex) & 0x3F;
+		UInt8 RedPixel = PaletteColors[PalatteSelect].x * float(0xFF);
+		UInt8 GreenPixel = PaletteColors[PalatteSelect].y * float(0xFF);
+		UInt8 BluePixel = PaletteColors[PalatteSelect].z * float(0xFF);
+
+		//Put our pixel in our VideoOutput texture.
+		if (PixelCounter >= 1 && PixelCounter <= 256)
+		{
+			if (ScanlineCounter >= 0 && ScanlineCounter <= 239)
+			{
+				UInt32 XOffset = (PixelCounter - 1) * 4;
+				UInt32 YOffset = ScanlineCounter * 1024;
+
+				PixelOutputData[YOffset + XOffset] = RedPixel;
+				PixelOutputData[YOffset + XOffset + 1] = GreenPixel;
+				PixelOutputData[YOffset + XOffset + 2] = BluePixel;
+				PixelOutputData[YOffset + XOffset + 3] = 255;
+			}
+		}
+
+		//Update our output.
 		PixelCounter++;
 		ClockCounter++;
-
-		//Shift Our Registers.
-		HighBGtileInfo >>= 1;
-		LowBGtileInfo >>= 1;
-		HighAttributeByte >>= 1;
-		LowAttributeByte >>= 1;
 
 		//Increment the Scanline Counter every 341 Cycles.
 		if (PixelCounter >= 341)
@@ -116,8 +314,10 @@ namespace NesEmulator
 			if (ScanlineCounter == 261)
 			{
 				ScanlineCounter = -1;
+				FrameComplete = true;
 				EvenFrames = !EvenFrames;
 				PixelCounter = 0;
+				FrameCounter++;
 			}
 			else
 			{
@@ -128,14 +328,43 @@ namespace NesEmulator
 	}
 	void NesPPU::Reset()
 	{
+		ScanlineCounter = -1;
+		PixelCounter = 0;
+		ClockCounter = 0;
+
+		Controller.Register = 0;
+		Mask = 0;
+		Scroll = 0;
+		PPUAddress.Register = 0x0000;
+		TempVRaddr.Register = 0x0000;
+		PPUData = 0;
+
+		TileAddress = 0;
+		AttributeByte = 0;
+		PatternTableLow = 0;
+		PatternTableHigh = 0;
+
+		HighBGtileInfo = 0;
+		LowBGtileInfo = 0;
+		LowAttributeByte = 0;
+		HighAttributeByte = 0;
+
+		WriteToggle = false;
+
+		//Allocate our pixel data.
+		delete[] PixelOutputData;
+		PixelOutputData = new UInt8[245760];
+		std::fill_n(PixelOutputData, 245760, 0);
+
 		LeftPatternTable.Release();
 		RightPatternTable.Release();
+		NametableView.Release();
 	}
 	void NesPPU::ConnectCartridge(const std::shared_ptr<NesCartridge>& Cartridge)
 	{
 		this->Cartridge = Cartridge;
 	}
-	void NesPPU::UpdateVideoOutput(Diligent::IRenderDevice* RenderDevice)
+	void NesPPU::UpdateVideoOutput(Diligent::IRenderDevice* RenderDevice, Diligent::IDeviceContext* Context)
 	{
 		if (VideoOutput == nullptr)
 		{
@@ -151,12 +380,26 @@ namespace NesEmulator
 			Diligent::TextureSubResData TextureData[] = { {PixelOutputData, 4 * UInt64{VideoOutputDesc.Width}} };
 			Diligent::TextureData VideoData(TextureData, _countof(TextureData));
 			Diligent::RefCntAutoPtr<Diligent::ITexture> TexData;
+			
 			RenderDevice->CreateTexture(VideoOutputDesc, &VideoData, &TexData);
 			VideoOutput = TexData->GetDefaultView(Diligent::TEXTURE_VIEW_SHADER_RESOURCE);
+			TexData.Release();
 		}
 		else
 		{
+			Diligent::Box MapRegion;
+			UInt32 Width = 256;
+			UInt32 Height = 240;
+			MapRegion.MaxX = Width;
+			MapRegion.MaxY = Height;
 
+			Diligent::TextureSubResData SubresData;
+			SubresData.Stride = size_t{ Width } * 4u;
+			SubresData.pData = PixelOutputData;
+			UInt32 MipLevel = 0;
+			UInt32 ArraySlice = 0;
+
+			Context->UpdateTexture(VideoOutput->GetTexture(), MipLevel, ArraySlice, MapRegion, SubresData, Diligent::RESOURCE_STATE_TRANSITION_MODE_TRANSITION, Diligent::RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
 		}
 	}
 
@@ -164,7 +407,14 @@ namespace NesEmulator
 	{
 		switch (Address)
 		{
-			case 0x000: Controller = Data; break;
+			case 0x000: 
+			{
+				Controller.Register = Data;
+				TempVRaddr.NameX = Controller.NameX;
+				TempVRaddr.NameY = Controller.NameY;
+
+				break;
+			}
 			case 0x001: Mask = Data; break;
 			case 0x002: break;
 			case 0x003: OAM_Address = Data; break;
@@ -173,12 +423,14 @@ namespace NesEmulator
 			{
 				if (WriteToggle == false)
 				{
-					Scroll = Data;
+					Scroll = Data & 0x07;
+					TempVRaddr.CoarseX = Data >> 3;
 					WriteToggle = true;
 				}
 				else
 				{
-					Scroll = (PPUAddress << 8) | Data;
+					TempVRaddr.FineY = Data & 0x07;
+					TempVRaddr.CoarseY = Data >> 3;
 					WriteToggle = false;
 				}
 
@@ -188,12 +440,13 @@ namespace NesEmulator
 			{
 				if (WriteToggle == false)
 				{
-					PPUAddress = Data;
+					TempVRaddr.Register = (UInt16)((Data & 0x3F) << 8) | (TempVRaddr.Register & 0x00FF);
 					WriteToggle = true;
 				}
 				else
 				{
-					PPUAddress = (PPUAddress << 8) | Data;
+					TempVRaddr.Register = (TempVRaddr.Register & 0xFF00) | Data;
+					PPUAddress = TempVRaddr;
 					WriteToggle = false;
 				}
 
@@ -201,10 +454,10 @@ namespace NesEmulator
 			}
 			case 0x007: 
 			{
-				PPUWrite(PPUAddress, Data);
+				PPUWrite(PPUAddress.Register, Data);
 
-				UInt8 Increment = (Controller & 0x04) ? 32 : 1;
-				PPUAddress += Increment;
+				UInt8 Increment = ((Controller.Register) ? 32 : 1);
+				PPUAddress.Register += Increment;
 				break;
 			}
 		}
@@ -219,7 +472,7 @@ namespace NesEmulator
 			case 0x001: break;
 			case 0x002: 
 			{
-				Data = Status & 0xE0;
+				Data = (Status & 0xE0) | (PPUData & 0x1F);
 				Status = Status & ~((UInt8)1 << 7);
 				WriteToggle = false;
 
@@ -237,9 +490,15 @@ namespace NesEmulator
 			case 0x007: 
 			{
 				Data = PPUData;
-				PPUData = PPURead(PPUAddress);
-				UInt8 Increment = (Controller & 0x04) ? 32 : 1;
-				PPUAddress += Increment;
+				PPUData = PPURead(PPUAddress.Register);
+
+				if (PPUAddress.Register >= 0x3F00)
+				{
+					Data = PPUData;
+				}
+
+				UInt8 Increment = ((Controller.Register) ? 32 : 1);
+				PPUAddress.Register += Increment;
 
 				break;
 			}
@@ -249,6 +508,8 @@ namespace NesEmulator
 	}
 	void NesPPU::PPUWrite(UInt16 Address, UInt8 Data)
 	{
+		Address &= 0x3FFF;
+
 		if (Cartridge->PPUWrite(Address, Data))
 		{
 
@@ -323,6 +584,7 @@ namespace NesEmulator
 	}
 	UInt8 NesPPU::PPURead(UInt16 Address)
 	{
+		Address &= 0x3FFF;
 		UInt8 ReturnData = 0;
 
 		if (Cartridge->PPURead(Address, ReturnData))
@@ -331,8 +593,47 @@ namespace NesEmulator
 		}
 		else if (Address >= 0x2000 && Address <= 0x3EFF)
 		{
-			UInt8 TableNum = floor(((Address - 0x2000) & 0x1000) / 0x400);
-			ReturnData = NameTable[TableNum][Address & 0x0400];
+			Address &= 0x0FFF;
+
+			if (Cartridge->GetMirrorMode() == Vertical)
+			{
+				// Vertical
+				if (Address >= 0x0000 && Address <= 0x03FF)
+				{
+					ReturnData = NameTable[0][Address & 0x03FF];
+				}
+				else if (Address >= 0x0400 && Address <= 0x07FF)
+				{
+					ReturnData = NameTable[1][Address & 0x03FF];
+				}
+				else if (Address >= 0x0800 && Address <= 0x0BFF)
+				{
+					ReturnData = NameTable[0][Address & 0x03FF];
+				}
+				else if (Address >= 0x0C00 && Address <= 0x0FFF)
+				{
+					ReturnData = NameTable[1][Address & 0x03FF];
+				}
+			}
+			else if (Cartridge->GetMirrorMode() == Horizontal)
+			{
+				if (Address >= 0x0000 && Address <= 0x03FF)
+				{
+					ReturnData = NameTable[0][Address & 0x03FF];
+				}
+				else if (Address >= 0x0400 && Address <= 0x07FF)
+				{
+					ReturnData = NameTable[0][Address & 0x03FF];
+				}
+				else if (Address >= 0x0800 && Address <= 0x0BFF)
+				{
+					ReturnData = NameTable[1][Address & 0x03FF];
+				}
+				else if (Address >= 0x0C00 && Address <= 0x0FFF)
+				{
+					ReturnData = NameTable[1][Address & 0x03FF];
+				}
+			}
 		}
 		else if (Address >= 0x3F00 && Address <= 0x3FFF)
 		{
@@ -374,18 +675,20 @@ namespace NesEmulator
 		ImGui::Text("Clock Counter: %d", ClockCounter);
 		ImGui::Text("Scanline: %d", ScanlineCounter);
 		ImGui::Text("Pixel Counter: %d", PixelCounter);
+		ImGui::Text("Frames: %d", FrameCounter);
 
 		ImGui::Separator();
 
-		ImGui::Text("Controller: 0x%X", Controller);
+		ImGui::Text("Controller: 0x%X", Controller.Register);
 		ImGui::Indent();
-		ImGui::Text("Nametable Select: %d", Controller & 0x07);
-		ImGui::Text("Increment Mode: %d", (Controller & 0x04) ? 1 : 0);
-		ImGui::Text("Sprite Tile Select: %d", (Controller & 0x08) ? 1 : 0);
-		ImGui::Text("Background Tile Select: %d", (Controller & 0x10) ? 1 : 0);
-		ImGui::Text("Sprite Size: %d", (Controller & 0x20) ? 1 : 0);
-		ImGui::Text("PPU Master/Slave: %d", (Controller & 0x40) ? 1 : 0);
-		ImGui::Text("NMI Enable: %d", (Controller & 0x80) ? 1 : 0);
+		UInt8 NametableAddr = ((Controller.NameX) ? 1 : 0) + ((Controller.NameY) ? 1 : 0);
+		ImGui::Text("Nametable Select: %d", NametableAddr);
+		ImGui::Text("Increment Mode: %d", Controller.IncrementMode);
+		ImGui::Text("Sprite Tile Select: %d", Controller.SpriteTableAddr);
+		ImGui::Text("Background Tile Select: %d", Controller.BGTableAddr);
+		ImGui::Text("Sprite Size: %d", Controller.SpriteSize);
+		ImGui::Text("PPU Master/Slave: %d", Controller.MasterPin);
+		ImGui::Text("NMI Enable: %d", Controller.NMIEnable);
 		ImGui::Unindent();
 
 		ImGui::Text("Mask: 0x%X", Mask);
@@ -410,7 +713,7 @@ namespace NesEmulator
 		ImGui::Text("OAM Address: 0x%X", OAM_Address);
 		ImGui::Text("OAM Data: 0x%X", OAM_Data);
 		ImGui::Text("Scroll: 0x%X", Scroll);
-		ImGui::Text("PPU Address: 0x%X", PPUAddress);
+		ImGui::Text("PPU Address: 0x%X", PPUAddress.Register);
 		ImGui::Text("PPU Data: 0x%X", PPUData);
 		ImGui::Text("OAM DMA: 0x%X", OAM_DMA);
 
@@ -535,6 +838,30 @@ namespace NesEmulator
 		ImGui::Begin("Nametable");
 		NameTableView.DrawContents(NameTable[0], 1024, 0x0000);
 		ImGui::End();
+	}
+
+	void NesPPU::ShiftBGRegisters()
+	{
+		//Shift Our Registers.
+		if (Mask & 0x08)
+		{
+			HighBGtileInfo <<= 1;
+			LowBGtileInfo <<= 1;
+			HighAttributeByte <<= 1;
+			LowAttributeByte <<= 1;
+		}
+	}
+	void NesPPU::LoadBGShiftRegisters()
+	{
+		LowBGtileInfo  = (LowBGtileInfo & 0xFF00) | PatternTableLow;
+		HighBGtileInfo = (HighBGtileInfo & 0xFF00) | PatternTableHigh;
+
+		LowAttributeByte  = (LowAttributeByte & 0xFF00) | ((AttributeByte & 0b01) ? 0xFF : 0x00);
+		HighAttributeByte = (HighAttributeByte & 0xFF00) | ((AttributeByte & 0b10) ? 0xFF : 0x00);
+	}
+	void NesPPU::LoadSpriteShiftRegisters()
+	{
+
 	}
 
 	void NesPPU::UpdateDebugPatternTable(Diligent::IRenderDevice* RenderDevice)
