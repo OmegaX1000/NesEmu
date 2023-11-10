@@ -672,9 +672,9 @@ namespace NesEmulator
 			}
 		}
 
-		//Transfer Instructions
+		//Transfer Instructions	
 		{
-			OpTable[0x9B] = { {'S', 'H', 'S', '\0'}, 0x9B, AbsoluteIndexedY, 3, 5, [](NesCPU* CPU) 
+			OpTable[0x9B] = { {'S', 'H', 'S', '\0'}, 0x9B, AbsoluteIndexedY, 3, 5, [](NesCPU* CPU)
 				{
 					//AND operation and store it in the stack
 					UInt8 FirstResult = CPU->Accumulator & CPU->Index_X;
@@ -696,7 +696,7 @@ namespace NesEmulator
 					CPU->WriteRAM(MemoryAddress, SecondResult);
 
 				} }; //(Unoffical) Transfer Accumulator "AND" Index Register X to Stack Pointer then Store Stack Pointer "AND" Hi-Byte In Memory
-			OpTable[0xAA] = { {'T', 'A', 'X', '\0'}, 0xAA, Implied, 1, 2, [](NesCPU* CPU) 
+			OpTable[0xAA] = { {'T', 'A', 'X', '\0'}, 0xAA, Implied, 1, 2, [](NesCPU* CPU)
 				{
 					CPU->Index_X = CPU->Accumulator;
 
@@ -744,7 +744,7 @@ namespace NesEmulator
 					CPU->ProgramCounter++;
 				} }; //Transfer Index Y To Accumulator (TYS)
 		}
-
+			
 		//Stack Instructions
 		{
 			OpTable[0x48] = { {'P', 'H', 'A', '\0'}, 0x48, Implied, 1, 3, [](NesCPU* CPU)
@@ -1182,101 +1182,101 @@ namespace NesEmulator
 						MemoryAddress += CPU->Index_X;
 						UInt8 MemoryValue = CPU->ReadRAM(MemoryAddress);
 
-						UInt8 Value = (MemoryValue ^ 0x00FF) - 1;
-						CPU->WriteRAM(MemoryAddress, Value);
-						CPU->Accumulator = CPU->Accumulator - Value;
+UInt8 Value = (MemoryValue ^ 0x00FF) - 1;
+CPU->WriteRAM(MemoryAddress, Value);
+CPU->Accumulator = CPU->Accumulator - Value;
 
-						CPU->SetFlag(Negative, Value & 0x80);
-						CPU->SetFlag(Zero, (CPU->Accumulator == MemoryValue));
-						CPU->SetFlag(Carry, (Value <= CPU->Accumulator) ? 1 : 0);
-						CPU->ProgramCounter++;
+CPU->SetFlag(Negative, Value & 0x80);
+CPU->SetFlag(Zero, (CPU->Accumulator == MemoryValue));
+CPU->SetFlag(Carry, (Value <= CPU->Accumulator) ? 1 : 0);
+CPU->ProgramCounter++;
 					} };
-				OpTable[0xDB] = { {'D', 'C', 'P'}, 0xDB, AbsoluteIndexedY, 3, 7, [](NesCPU* CPU)
-					{
-						CPU->ProgramCounter++;
-						UInt8 LowAddresByte = CPU->ReadRAM(CPU->ProgramCounter);
-						CPU->ProgramCounter++;
-						UInt8 HighAddresByte = CPU->ReadRAM(CPU->ProgramCounter);
-						UInt16 MemoryAddress = (HighAddresByte << 8) | LowAddresByte;
-						MemoryAddress += CPU->Index_Y;
-						UInt8 MemoryValue = CPU->ReadRAM(MemoryAddress);
+					OpTable[0xDB] = { {'D', 'C', 'P'}, 0xDB, AbsoluteIndexedY, 3, 7, [](NesCPU* CPU)
+						{
+							CPU->ProgramCounter++;
+							UInt8 LowAddresByte = CPU->ReadRAM(CPU->ProgramCounter);
+							CPU->ProgramCounter++;
+							UInt8 HighAddresByte = CPU->ReadRAM(CPU->ProgramCounter);
+							UInt16 MemoryAddress = (HighAddresByte << 8) | LowAddresByte;
+							MemoryAddress += CPU->Index_Y;
+							UInt8 MemoryValue = CPU->ReadRAM(MemoryAddress);
 
-						UInt8 Value = (MemoryValue ^ 0x00FF) - 1;
-						CPU->WriteRAM(MemoryAddress, Value);
-						CPU->Accumulator = CPU->Accumulator - Value;
+							UInt8 Value = (MemoryValue ^ 0x00FF) - 1;
+							CPU->WriteRAM(MemoryAddress, Value);
+							CPU->Accumulator = CPU->Accumulator - Value;
 
-						CPU->SetFlag(Negative, Value & 0x80);
-						CPU->SetFlag(Zero, (CPU->Accumulator == MemoryValue));
-						CPU->SetFlag(Carry, (Value <= CPU->Accumulator) ? 1 : 0);
-						CPU->ProgramCounter++;
-					} };
-				OpTable[0xC7] = { {'D', 'C', 'P'}, 0xC7, ZeroPage, 2, 5, [](NesCPU* CPU)
-					{
-						CPU->ProgramCounter++;
-						UInt8 MemoryAddress = CPU->ReadRAM(CPU->ProgramCounter);
-						UInt8 MemoryValue = CPU->ReadRAM(MemoryAddress);
+							CPU->SetFlag(Negative, Value & 0x80);
+							CPU->SetFlag(Zero, (CPU->Accumulator == MemoryValue));
+							CPU->SetFlag(Carry, (Value <= CPU->Accumulator) ? 1 : 0);
+							CPU->ProgramCounter++;
+						} };
+					OpTable[0xC7] = { {'D', 'C', 'P'}, 0xC7, ZeroPage, 2, 5, [](NesCPU* CPU)
+						{
+							CPU->ProgramCounter++;
+							UInt8 MemoryAddress = CPU->ReadRAM(CPU->ProgramCounter);
+							UInt8 MemoryValue = CPU->ReadRAM(MemoryAddress);
 
-						UInt8 Value = (MemoryValue ^ 0x00FF) - 1;
-						CPU->WriteRAM(MemoryAddress, Value);
-						CPU->Accumulator = CPU->Accumulator - Value;
+							UInt8 Value = (MemoryValue ^ 0x00FF) - 1;
+							CPU->WriteRAM(MemoryAddress, Value);
+							CPU->Accumulator = CPU->Accumulator - Value;
 
-						CPU->SetFlag(Negative, Value & 0x80);
-						CPU->SetFlag(Zero, (CPU->Accumulator == MemoryValue));
-						CPU->SetFlag(Carry, (Value <= CPU->Accumulator) ? 1 : 0);
-						CPU->ProgramCounter++;
-					} };
-				OpTable[0xD7] = { {'D', 'C', 'P'}, 0xD7, ZeroPageIndexX, 2, 6, [](NesCPU* CPU)
-					{
-						CPU->ProgramCounter++;
-						UInt8 MemoryAddress = CPU->ReadRAM(CPU->ProgramCounter) + CPU->Index_X;
-						UInt8 MemoryValue = CPU->ReadRAM(MemoryAddress);
+							CPU->SetFlag(Negative, Value & 0x80);
+							CPU->SetFlag(Zero, (CPU->Accumulator == MemoryValue));
+							CPU->SetFlag(Carry, (Value <= CPU->Accumulator) ? 1 : 0);
+							CPU->ProgramCounter++;
+						} };
+					OpTable[0xD7] = { {'D', 'C', 'P'}, 0xD7, ZeroPageIndexX, 2, 6, [](NesCPU* CPU)
+						{
+							CPU->ProgramCounter++;
+							UInt8 MemoryAddress = CPU->ReadRAM(CPU->ProgramCounter) + CPU->Index_X;
+							UInt8 MemoryValue = CPU->ReadRAM(MemoryAddress);
 
-						UInt8 Value = (MemoryValue ^ 0x00FF) - 1;
-						CPU->WriteRAM(MemoryAddress, Value);
-						CPU->Accumulator = CPU->Accumulator - Value;
+							UInt8 Value = (MemoryValue ^ 0x00FF) - 1;
+							CPU->WriteRAM(MemoryAddress, Value);
+							CPU->Accumulator = CPU->Accumulator - Value;
 
-						CPU->SetFlag(Negative, Value & 0x80);
-						CPU->SetFlag(Zero, (CPU->Accumulator == MemoryValue));
-						CPU->SetFlag(Carry, (Value <= CPU->Accumulator) ? 1 : 0);
-						CPU->ProgramCounter++;
-					} };
-				OpTable[0xC3] = { {'D', 'C', 'P'}, 0xC3, IndirectIndexedX, 2, 8, [](NesCPU* CPU)
-					{
-						CPU->ProgramCounter++;
-						UInt8 MemoryAddress = CPU->ReadRAM(CPU->ProgramCounter);
-						UInt8 SecondAddressLow = CPU->ReadRAM(MemoryAddress + CPU->Index_X);
-						UInt8 SecondAddressHigh = CPU->ReadRAM(MemoryAddress + CPU->Index_X + 1);
-						UInt16 FinalMemoryAddress = (SecondAddressHigh << 8) | SecondAddressLow;
-						UInt8 MemoryValue = CPU->ReadRAM(FinalMemoryAddress);
+							CPU->SetFlag(Negative, Value & 0x80);
+							CPU->SetFlag(Zero, (CPU->Accumulator == MemoryValue));
+							CPU->SetFlag(Carry, (Value <= CPU->Accumulator) ? 1 : 0);
+							CPU->ProgramCounter++;
+						} };
+					OpTable[0xC3] = { {'D', 'C', 'P'}, 0xC3, IndirectIndexedX, 2, 8, [](NesCPU* CPU)
+						{
+							CPU->ProgramCounter++;
+							UInt8 MemoryAddress = CPU->ReadRAM(CPU->ProgramCounter);
+							UInt8 SecondAddressLow = CPU->ReadRAM(MemoryAddress + CPU->Index_X);
+							UInt8 SecondAddressHigh = CPU->ReadRAM(MemoryAddress + CPU->Index_X + 1);
+							UInt16 FinalMemoryAddress = (SecondAddressHigh << 8) | SecondAddressLow;
+							UInt8 MemoryValue = CPU->ReadRAM(FinalMemoryAddress);
 
-						UInt8 Value = (MemoryValue ^ 0x00FF) - 1;
-						CPU->WriteRAM(FinalMemoryAddress, Value);
-						CPU->Accumulator = CPU->Accumulator - Value;
+							UInt8 Value = (MemoryValue ^ 0x00FF) - 1;
+							CPU->WriteRAM(FinalMemoryAddress, Value);
+							CPU->Accumulator = CPU->Accumulator - Value;
 
-						CPU->SetFlag(Negative, Value & 0x80);
-						CPU->SetFlag(Zero, (CPU->Accumulator == MemoryValue));
-						CPU->SetFlag(Carry, (Value <= CPU->Accumulator) ? 1 : 0);
-						CPU->ProgramCounter++;
-					} };
-				OpTable[0xD3] = { {'D', 'C', 'P'}, 0xD3, IndirectIndexedY, 2, 8, [](NesCPU* CPU)
-					{
-						CPU->ProgramCounter++;
-						UInt8 MemoryAddress = CPU->ReadRAM(CPU->ProgramCounter);
-						UInt8 SecondAddressLow = CPU->ReadRAM(MemoryAddress);
-						UInt8 SecondAddressHigh = CPU->ReadRAM(MemoryAddress + 1);
-						UInt16 FinalMemoryAddress = (SecondAddressHigh << 8) | SecondAddressLow;
-						FinalMemoryAddress += CPU->Index_Y;
-						UInt8 MemoryValue = CPU->ReadRAM(FinalMemoryAddress);
+							CPU->SetFlag(Negative, Value & 0x80);
+							CPU->SetFlag(Zero, (CPU->Accumulator == MemoryValue));
+							CPU->SetFlag(Carry, (Value <= CPU->Accumulator) ? 1 : 0);
+							CPU->ProgramCounter++;
+						} };
+					OpTable[0xD3] = { {'D', 'C', 'P'}, 0xD3, IndirectIndexedY, 2, 8, [](NesCPU* CPU)
+						{
+							CPU->ProgramCounter++;
+							UInt8 MemoryAddress = CPU->ReadRAM(CPU->ProgramCounter);
+							UInt8 SecondAddressLow = CPU->ReadRAM(MemoryAddress);
+							UInt8 SecondAddressHigh = CPU->ReadRAM(MemoryAddress + 1);
+							UInt16 FinalMemoryAddress = (SecondAddressHigh << 8) | SecondAddressLow;
+							FinalMemoryAddress += CPU->Index_Y;
+							UInt8 MemoryValue = CPU->ReadRAM(FinalMemoryAddress);
 
-						UInt8 Value = (MemoryValue ^ 0x00FF) - 1;
-						CPU->WriteRAM(FinalMemoryAddress, Value);
-						CPU->Accumulator = CPU->Accumulator - Value;
+							UInt8 Value = (MemoryValue ^ 0x00FF) - 1;
+							CPU->WriteRAM(FinalMemoryAddress, Value);
+							CPU->Accumulator = CPU->Accumulator - Value;
 
-						CPU->SetFlag(Negative, Value & 0x80);
-						CPU->SetFlag(Zero, (CPU->Accumulator == MemoryValue));
-						CPU->SetFlag(Carry, (Value <= CPU->Accumulator) ? 1 : 0);
-						CPU->ProgramCounter++;
-					} };
+							CPU->SetFlag(Negative, Value & 0x80);
+							CPU->SetFlag(Zero, (CPU->Accumulator == MemoryValue));
+							CPU->SetFlag(Carry, (Value <= CPU->Accumulator) ? 1 : 0);
+							CPU->ProgramCounter++;
+						} };
 			}
 
 			//ISC - Increment Memory By One then SBC then Subtract Memory from Accumulator with Borrow
@@ -3115,11 +3115,11 @@ namespace NesEmulator
 		SetFlag(Decimal, 0);
 		SetFlag(Interrupt, 1);
 		SetFlag(Unsed, 1);
-		StackPointer = 0xFD; //Sets the stack pointer, testing only, this gets set in software.
+		StackPointer -= 3; //Sets the stack pointer, testing only, this gets set in software.
 		ProgramCounter = (HighByte << 8) | LowByte; //Start Location.
 
 		//Set our cycles remaining.
-		CycleRemain = 7;
+		CycleRemain = 8;
 	}
 	void NesCPU::NMI()
 	{

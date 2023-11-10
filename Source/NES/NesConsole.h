@@ -2,6 +2,7 @@
 #include "NesCPU.h"
 #include "NesPPU.h"
 #include "NesCartridge.h"
+#include "NesController.h"
 #include "imgui.h"
 #include "imgui_memory_editor.h"
 
@@ -15,16 +16,18 @@ namespace NesEmulator
 	class NesConsole
 	{
 		private:
+
+			UInt64 SystemClockCounter = 0;
+			Diligent::RefCntAutoPtr<Diligent::ITextureView> VideoOutput;
+
 			//Devices.
 			NesCPU CPU;	//The CPU (6502)
 			NesPPU PPU;	//The PPU
 
-			UInt32 SystemClockCounter = 0;
-
 			//Memory
 			UInt8 Ram[2048]; //The CPU internal ram. (2Kb)
-			//UInt8 ControllerOne;
-			//UInt8 ControllerTwo;
+			NesController ControllerOne;
+			NesController ControllerTwo;
 
 			//The Cartridge that holds our Program.
 			std::shared_ptr<NesCartridge> Cartridge;
@@ -35,8 +38,10 @@ namespace NesEmulator
 			NesConsole();
 
 			//Other Functions
-			void Clock(Diligent::IRenderDevice* RenderDevice, Diligent::IDeviceContext* Context);
+			void Clock();
+			void DrawVideo();
 			void InsertCartridge(std::string_view NewCartPath);
+			void UpdateVideoOutput(Diligent::IRenderDevice* RenderDevice, Diligent::IDeviceContext* Context);
 
 			//RAM Functions
 			void CPUWrite(UInt16 Address, UInt8 Data); //CPU WriteRam Function.

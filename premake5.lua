@@ -22,4 +22,3 @@ group "Dependencies"
 group ""
 
 include "Source/"
-include "Test/"

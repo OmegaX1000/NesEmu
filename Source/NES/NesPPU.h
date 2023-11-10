@@ -92,8 +92,6 @@ namespace NesEmulator
 			//Sprite Registers
 
 			//Helper Variables
-			Diligent::RefCntAutoPtr<Diligent::ITextureView> VideoOutput;
-			UInt8* PixelOutputData;
 			Int16 ScanlineCounter = -1;
 			bool EvenFrames = false;
 
@@ -114,14 +112,14 @@ namespace NesEmulator
 			~NesPPU();
 
 			//Public Variables
+			UInt8* PixelOutputData;
 			bool FrameComplete = false;
 			bool NMI = false;
 
 			//Other Functions
-			void Clock(Diligent::IRenderDevice* RenderDevice, Diligent::IDeviceContext* Context);
+			void Clock();
 			void Reset();
 			void ConnectCartridge(const std::shared_ptr<NesCartridge>& Cartridge);
-			void UpdateVideoOutput(Diligent::IRenderDevice* RenderDevice, Diligent::IDeviceContext* Context);
 
 			//Ram Functions
 			void CPUWrite(UInt16 Address, UInt8 Data);
@@ -130,7 +128,6 @@ namespace NesEmulator
 			UInt8 PPURead(UInt16 Address);
 
 			//Debug Functions
-			void DrawVideo(); //Temporary
 			void DrawRegisters();
 			void DrawPalettes();
 			void DrawPatternTable();

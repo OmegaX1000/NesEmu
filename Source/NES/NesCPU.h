@@ -34,7 +34,7 @@ namespace NesEmulator
 			Instruction OpTable[256];
 
 			//Our Clock Signal.
-			UInt32 CycleCounter = 0;
+			UInt64 CycleCounter = 0;
 
 		public:
 

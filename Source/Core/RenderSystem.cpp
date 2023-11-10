@@ -48,8 +48,8 @@ namespace NesEmulator
 			}
 		}
 	}
-	
-	void RenderSystem::RenderImGui(ImGuiRenderData* RenderBatch, ImDrawData* ImData)
+
+	void RenderSystem::ClearScreen()
 	{
 		auto* pRTV = SwapChain->GetCurrentBackBufferRTV();
 		auto* pDSV = SwapChain->GetDepthBufferDSV();
@@ -58,7 +58,9 @@ namespace NesEmulator
 		DeviceContext->SetRenderTargets(1, &pRTV, pDSV, Diligent::RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
 		DeviceContext->ClearRenderTarget(pRTV, ClearColor, Diligent::RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
 		DeviceContext->ClearDepthStencil(pDSV, Diligent::CLEAR_DEPTH_FLAG, 1.f, 0, Diligent::RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
-
+	}
+	void RenderSystem::RenderImGui(ImGuiRenderData* RenderBatch, ImDrawData* ImData)
+	{
 		//Create our vertex buffer and index buffer
 		UInt32 VertexBufferSize = 1024;
 		UInt32 IndexBufferSize = 2048;

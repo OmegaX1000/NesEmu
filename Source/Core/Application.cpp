@@ -4,10 +4,30 @@ namespace NesEmulator
 {
 	Application* Application::Instance = nullptr;
 
-	Application::Application() : MainWindow(nullptr)
+	Application::Application() : MainWindow(nullptr), Config(nullptr)
 	{
 		if (SDL_Init(SDL_INIT_EVERYTHING) == 0)
 		{
+			//Get our configuration setings.
+			std::ifstream SettingsFile;
+			SettingsFile.open("settings.json", std::ifstream::in);	
+
+			if (!SettingsFile.is_open())
+			{
+				SettingsFile.open("settings.json", std::ifstream::in | std::ifstream::out | std::ifstream::app);
+				Config = new ConfigData
+				{
+					.WorkingDirectory = SDL_GetBasePath()
+				};
+				SettingsFile.close();
+			}
+			else
+			{
+				LoadConfigSettings(&SettingsFile);
+				SettingsFile.close();
+			}
+
+			//Create our window.
 			this->Instance = this;
 			MainWindow = SDL_CreateWindow(WindowTitle.c_str(), SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, WindowWidth, WindowHeight, WindowFlags);
 
@@ -21,7 +41,6 @@ namespace NesEmulator
 
 			GraphicsSystem.InitalizeRenderer(MainWindow, Diligent::RENDER_DEVICE_TYPE_D3D12);
 			GuiLayer.ImGuiCreate(GraphicsSystem.GetDevice(), GraphicsSystem.GetSwapChain());
-
 			NesMachine.InsertCartridge("F:/OmegaGamingHunters Folder/TestNES Emulator/Assets/Programs/nestest.nes");
 		}
 	}
@@ -30,6 +49,11 @@ namespace NesEmulator
 		GuiLayer.ImGuiDestroy();
 		NFD_Quit();
 		SDL_Quit();
+	}
+
+	void Application::LoadConfigSettings(std::istream* File)
+	{
+		//nlohmann::json Settings = nlohmann::json::parse(File);
 	}
 
 	Application& Application::Get()
@@ -41,16 +65,25 @@ namespace NesEmulator
 	{
 		while (ProgramLoop)
 		{
+			//Setup.
 			HandleEvents();
+			GraphicsSystem.ClearScreen();
 			GuiLayer.BeginFrame(MainWindow, GraphicsSystem.GetDevice(), GraphicsSystem.GetSwapChain());
 
-			for (int i = 0; i < 89341; i++)
+			//Run the Emulator
+			while (!NesMachine.GetPPU()->FrameComplete)
 			{
-				NesMachine.Clock(GraphicsSystem.GetDevice(), GraphicsSystem.GetContext());
+				NesMachine.Clock();
 			}
 
+			NesMachine.UpdateVideoOutput(GraphicsSystem.GetDevice(), GraphicsSystem.GetContext());
+			NesMachine.GetPPU()->FrameComplete = false;
+			NesMachine.GetPPU()->UpdateDebugPatternTable(GraphicsSystem.GetDevice());
+
+			//Render the GUI
 			UpdateUI();
 
+			//Push results to the screen.
 			GuiLayer.EndFrame();
 			GraphicsSystem.RenderImGui(GuiLayer.GetRenderData(), ImGui::GetDrawData());
 			GraphicsSystem.Present();
@@ -58,8 +91,6 @@ namespace NesEmulator
 	}
 	void Application::UpdateUI()
 	{
-		ImGui::DockSpaceOverViewport();
-
 		//Main Menu Bar
 		if (ImGui::BeginMainMenuBar())
 		{
@@ -78,6 +109,11 @@ namespace NesEmulator
 					}
 				}
 
+				if (ImGui::MenuItem(ICON_FA_TIMES_CIRCLE " Close"))
+				{
+
+				}
+
 				ImGui::Separator();
 				
 				if (ImGui::MenuItem("Exit"))
@@ -87,11 +123,19 @@ namespace NesEmulator
 
 				ImGui::EndMenu();
 			}
+			if (ImGui::BeginMenu("NES"))
+			{
+				ImGui::EndMenu();
+			}
+			if (ImGui::BeginMenu("Settings"))
+			{
+				ImGui::EndMenu();
+			}
 			if (ImGui::BeginMenu("Help"))
 			{
 				if (ImGui::MenuItem("About"))
 				{
-
+					ImGui::ShowAboutWindow();
 				}
 
 				ImGui::EndMenu();
@@ -100,11 +144,12 @@ namespace NesEmulator
 			ImGui::EndMainMenuBar();
 		}
 
-		NesMachine.GetPPU()->DrawVideo();
+		//Draw our output from the emulator.
+		NesMachine.DrawVideo();
+
+		//Draw everything else.
 		NesMachine.GetPPU()->DrawRegisters();
 		NesMachine.GetPPU()->DrawPatternTable();
-		NesMachine.GetPPU()->DrawNametable();
-		NesMachine.GetPPU()->DrawPalettes();
 		NesMachine.GetCPU()->DrawRegisters();
 	}
 	void Application::HandleEvents()
@@ -121,19 +166,11 @@ namespace NesEmulator
 				{
 					if (Event.key.keysym.scancode == SDL_GetScancodeFromKey(SDLK_z))
 					{
-						for (int i = 0; i < 341; i++)
-						{
-							NesMachine.Clock(GraphicsSystem.GetDevice(), GraphicsSystem.GetContext());
-						}
-
-						NesMachine.GetPPU()->UpdateDebugPatternTable(GraphicsSystem.GetDevice());
-						//NesMachine.GetCPU()->Clock();
+						
 					}
 					else if (Event.key.keysym.scancode == SDL_GetScancodeFromKey(SDLK_x))
 					{
-						NesMachine.Clock(GraphicsSystem.GetDevice(), GraphicsSystem.GetContext());
-						NesMachine.GetPPU()->UpdateDebugPatternTable(GraphicsSystem.GetDevice());
-						//NesMachine.GetCPU()->Clock();
+						
 					}
 
 					break;

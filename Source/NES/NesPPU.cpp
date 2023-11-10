@@ -47,7 +47,7 @@ namespace NesEmulator
 		delete[] PixelOutputData;
 	}
 
-	void NesPPU::Clock(Diligent::IRenderDevice* RenderDevice, Diligent::IDeviceContext* Context)
+	void NesPPU::Clock()
 	{
 		if (ScanlineCounter >= -1 && ScanlineCounter <= 240)
 		{
@@ -259,8 +259,6 @@ namespace NesEmulator
 				{
 					NMI = true;
 				}
-
-				UpdateVideoOutput(RenderDevice, Context);
 			}
 		}
 
@@ -363,44 +361,6 @@ namespace NesEmulator
 	void NesPPU::ConnectCartridge(const std::shared_ptr<NesCartridge>& Cartridge)
 	{
 		this->Cartridge = Cartridge;
-	}
-	void NesPPU::UpdateVideoOutput(Diligent::IRenderDevice* RenderDevice, Diligent::IDeviceContext* Context)
-	{
-		if (VideoOutput == nullptr)
-		{
-			Diligent::TextureDesc VideoOutputDesc;
-			VideoOutputDesc.Name = "Video Output";
-			VideoOutputDesc.Type = Diligent::RESOURCE_DIM_TEX_2D;
-			VideoOutputDesc.Width = 256;
-			VideoOutputDesc.Height = 240;
-			VideoOutputDesc.Format = Diligent::TEX_FORMAT_RGBA8_UNORM_SRGB;
-			VideoOutputDesc.BindFlags = Diligent::BIND_SHADER_RESOURCE;
-			VideoOutputDesc.Usage = Diligent::USAGE_DYNAMIC;
-
-			Diligent::TextureSubResData TextureData[] = { {PixelOutputData, 4 * UInt64{VideoOutputDesc.Width}} };
-			Diligent::TextureData VideoData(TextureData, _countof(TextureData));
-			Diligent::RefCntAutoPtr<Diligent::ITexture> TexData;
-			
-			RenderDevice->CreateTexture(VideoOutputDesc, &VideoData, &TexData);
-			VideoOutput = TexData->GetDefaultView(Diligent::TEXTURE_VIEW_SHADER_RESOURCE);
-			TexData.Release();
-		}
-		else
-		{
-			Diligent::Box MapRegion;
-			UInt32 Width = 256;
-			UInt32 Height = 240;
-			MapRegion.MaxX = Width;
-			MapRegion.MaxY = Height;
-
-			Diligent::TextureSubResData SubresData;
-			SubresData.Stride = size_t{ Width } * 4u;
-			SubresData.pData = PixelOutputData;
-			UInt32 MipLevel = 0;
-			UInt32 ArraySlice = 0;
-
-			Context->UpdateTexture(VideoOutput->GetTexture(), MipLevel, ArraySlice, MapRegion, SubresData, Diligent::RESOURCE_STATE_TRANSITION_MODE_TRANSITION, Diligent::RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
-		}
 	}
 
 	void NesPPU::CPUWrite(UInt16 Address, UInt8 Data)
@@ -662,12 +622,6 @@ namespace NesEmulator
 		return ReturnData;
 	}
 
-	void NesPPU::DrawVideo()
-	{
-		ImGui::Begin("Video");
-		ImGui::Image((void*)VideoOutput, ImVec2(512, 480), ImVec2(0, 0), ImVec2(1, 1), ImVec4(1, 1, 1, 1), ImVec4(1, 1, 1, 1));
-		ImGui::End();
-	}
 	void NesPPU::DrawRegisters()
 	{
 		ImGui::Begin("PPU Registers");

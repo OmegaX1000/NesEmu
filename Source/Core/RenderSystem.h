@@ -32,6 +32,7 @@ namespace NesEmulator
 
 			void InitalizeRenderer(SDL_Window* WindowHandle, Diligent::RENDER_DEVICE_TYPE RendererBackend);
 
+			void ClearScreen();
 			void RenderImGui(ImGuiRenderData* RenderBatch, ImDrawData* ImData);
 			void Present();
 

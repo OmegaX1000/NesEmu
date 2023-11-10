@@ -25,7 +25,8 @@ project "Emulator"
 		"%{IncludeDir.Diligent}",
 		"%{IncludeDir.Imgui}",
 		"%{IncludeDir.ImGuiFonts}",
-		"%{IncludeDir.NatFileDial}"
+		"%{IncludeDir.NatFileDial}",
+		"%{IncludeDir.Json}"
 	}
 
 	libdirs
