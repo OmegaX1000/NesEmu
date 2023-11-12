@@ -3,7 +3,9 @@
 #include "NesPPU.h"
 #include "NesCartridge.h"
 #include "NesController.h"
+#include "SDL_events.h"
 #include "imgui.h"
+#include "imgui_internal.h"
 #include "imgui_memory_editor.h"
 
 #include <string>
@@ -42,6 +44,9 @@ namespace NesEmulator
 			void DrawVideo();
 			void InsertCartridge(std::string_view NewCartPath);
 			void UpdateVideoOutput(Diligent::IRenderDevice* RenderDevice, Diligent::IDeviceContext* Context);
+			void PollControllers();
+
+			void DrawCPUMemory();
 
 			//RAM Functions
 			void CPUWrite(UInt16 Address, UInt8 Data); //CPU WriteRam Function.
@@ -50,8 +55,7 @@ namespace NesEmulator
 			//Device Getters
 			NesCPU* GetCPU();
 			NesPPU* GetPPU();
-
-			//Debug Functions
-			void DrawRamContents(int StartAddress);
+			NesController* GetControllerOne();
+			NesController* GetControllerTwo();
 	};
 }

@@ -26,7 +26,8 @@ project "Emulator"
 		"%{IncludeDir.Imgui}",
 		"%{IncludeDir.ImGuiFonts}",
 		"%{IncludeDir.NatFileDial}",
-		"%{IncludeDir.Json}"
+		"%{IncludeDir.Json}",
+		"%{IncludeDir.Optick}"
 	}
 
 	libdirs
@@ -39,6 +40,7 @@ project "Emulator"
 	{
 		"ImGui",
 		"NativeFileDialog",
+		"Optick",
 		"SDL2.lib",
 		"SDL2main.lib",
 		"DiligentCore.lib",

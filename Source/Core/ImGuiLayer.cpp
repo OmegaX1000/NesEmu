@@ -1,10 +1,13 @@
 #include "ImGuiLayer.h"
 #include "ImGuiShaders.h"
 
+#include "optick.h"
+
 namespace NesEmulator
 {
 	void ImGuiLayer::ImGuiCreate(Diligent::IRenderDevice* Device, Diligent::ISwapChain* SwapChain)
 	{
+		OPTICK_EVENT();
 		Context = ImGui::CreateContext();
 
 		ImGuiIO& io = ImGui::GetIO();
@@ -46,11 +49,13 @@ namespace NesEmulator
 	}
 	void ImGuiLayer::ImGuiDestroy()
 	{
+		OPTICK_EVENT();
 		ImGui::DestroyContext(Context);
 	}
 
 	void ImGuiLayer::ProcessEvents(SDL_Event* Event)
 	{
+		OPTICK_EVENT();
 		ImGuiIO& io = ImGui::GetIO();
 
 		switch (Event->type)
@@ -120,6 +125,7 @@ namespace NesEmulator
 	}
 	void ImGuiLayer::BeginFrame(SDL_Window* WindowHandle, Diligent::IRenderDevice* Device, Diligent::ISwapChain* SwapChain)
 	{
+		OPTICK_EVENT();
 		if (!RenderData.Pipeline)
 		{
 			CreateDeviceObjects(Device, SwapChain);
@@ -137,12 +143,14 @@ namespace NesEmulator
 	}
 	void ImGuiLayer::EndFrame()
 	{
+		OPTICK_EVENT();
 		ImGui::EndFrame();
 		ImGui::Render();
 	}
 
 	void ImGuiLayer::CreateDeviceObjects(Diligent::IRenderDevice* Device, Diligent::ISwapChain* SwapChain)
 	{
+		OPTICK_EVENT();
 		//Release our resources so we can create them again.
 		ReleaseDeviceObjects();
 
@@ -304,6 +312,7 @@ namespace NesEmulator
 	}
 	void ImGuiLayer::CreateFontTextures(Diligent::IRenderDevice* Device)
 	{
+		OPTICK_EVENT();
 		//Build texture atlas
 		ImGuiIO& IO = ImGui::GetIO();
 
@@ -338,6 +347,7 @@ namespace NesEmulator
 	}
 	void ImGuiLayer::ReleaseDeviceObjects()
 	{
+		OPTICK_EVENT();
 		RenderData.ShaderVarBinding.Release();
 		RenderData.TextureView.Release();
 		RenderData.ConstantData.Release();

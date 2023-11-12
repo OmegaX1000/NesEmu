@@ -1,9 +1,12 @@
 #include "RenderSystem.h"
 
+#include "optick.h"
+
 namespace NesEmulator
 {
 	void RenderSystem::InitalizeRenderer(SDL_Window* WindowHandle, Diligent::RENDER_DEVICE_TYPE RendererBackend)
 	{
+		OPTICK_EVENT();
 		Diligent::SwapChainDesc SwapDesc;
 		SDL_SysWMinfo WindowInfo;
 		SDL_VERSION(&WindowInfo.version);
@@ -51,6 +54,7 @@ namespace NesEmulator
 
 	void RenderSystem::ClearScreen()
 	{
+		OPTICK_EVENT();
 		auto* pRTV = SwapChain->GetCurrentBackBufferRTV();
 		auto* pDSV = SwapChain->GetDepthBufferDSV();
 		const float ClearColor[] = { 0.000f, 0.000f, 0.000f, 1.0f };
@@ -61,6 +65,7 @@ namespace NesEmulator
 	}
 	void RenderSystem::RenderImGui(ImGuiRenderData* RenderBatch, ImDrawData* ImData)
 	{
+		OPTICK_EVENT();
 		//Create our vertex buffer and index buffer
 		UInt32 VertexBufferSize = 1024;
 		UInt32 IndexBufferSize = 2048;
@@ -251,6 +256,7 @@ namespace NesEmulator
 	}
 	void RenderSystem::Present()
 	{
+		OPTICK_EVENT();
 		SwapChain->Present();
 	}
 

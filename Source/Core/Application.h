@@ -38,6 +38,8 @@ namespace NesEmulator
 			NesConsole NesMachine;
 			bool ProgramLoop = true;
 
+			bool ShowInputConfig = false;
+
 			void LoadConfigSettings(std::istream* FileString);
 
 			//Window Properties.
@@ -46,6 +48,9 @@ namespace NesEmulator
 			int WindowWidth = 640;
 			int WindowHeight = 480;
 			UInt32 WindowFlags = SDL_WINDOW_RESIZABLE;
+
+			//ImGui Windows
+			void InputConfiguration();
 
 		public:
 

@@ -19,6 +19,7 @@ workspace "TestNES"
 group "Dependencies"
 	include "Dependencies/imgui/"
 	include "Dependencies/nativefiledialog/"
+	include "Dependencies/Optick/"
 group ""
 
 include "Source/"

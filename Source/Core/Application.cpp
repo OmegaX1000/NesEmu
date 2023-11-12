@@ -1,4 +1,5 @@
 #include "Application.h"
+#include "optick.h"
 
 namespace NesEmulator
 {
@@ -6,6 +7,8 @@ namespace NesEmulator
 
 	Application::Application() : MainWindow(nullptr), Config(nullptr)
 	{
+		OPTICK_EVENT("Application Init");
+
 		if (SDL_Init(SDL_INIT_EVERYTHING) == 0)
 		{
 			//Get our configuration setings.
@@ -46,6 +49,7 @@ namespace NesEmulator
 	}
 	Application::~Application()
 	{
+		OPTICK_EVENT("Application Exit");
 		GuiLayer.ImGuiDestroy();
 		NFD_Quit();
 		SDL_Quit();
@@ -53,6 +57,7 @@ namespace NesEmulator
 
 	void Application::LoadConfigSettings(std::istream* File)
 	{
+		OPTICK_EVENT();
 		//nlohmann::json Settings = nlohmann::json::parse(File);
 	}
 
@@ -65,6 +70,8 @@ namespace NesEmulator
 	{
 		while (ProgramLoop)
 		{
+			OPTICK_FRAME("MainThread");
+
 			//Setup.
 			HandleEvents();
 			GraphicsSystem.ClearScreen();
@@ -74,7 +81,7 @@ namespace NesEmulator
 			while (!NesMachine.GetPPU()->FrameComplete)
 			{
 				NesMachine.Clock();
-			}
+			}			
 
 			NesMachine.UpdateVideoOutput(GraphicsSystem.GetDevice(), GraphicsSystem.GetContext());
 			NesMachine.GetPPU()->FrameComplete = false;
@@ -91,6 +98,8 @@ namespace NesEmulator
 	}
 	void Application::UpdateUI()
 	{
+		OPTICK_EVENT();
+
 		//Main Menu Bar
 		if (ImGui::BeginMainMenuBar())
 		{
@@ -125,6 +134,11 @@ namespace NesEmulator
 			}
 			if (ImGui::BeginMenu("NES"))
 			{
+				if (ImGui::MenuItem("Input"))
+				{
+					ShowInputConfig = true;
+				}
+
 				ImGui::EndMenu();
 			}
 			if (ImGui::BeginMenu("Settings"))
@@ -148,12 +162,16 @@ namespace NesEmulator
 		NesMachine.DrawVideo();
 
 		//Draw everything else.
+		InputConfiguration();
+		
+		NesMachine.DrawCPUMemory();
 		NesMachine.GetPPU()->DrawRegisters();
 		NesMachine.GetPPU()->DrawPatternTable();
 		NesMachine.GetCPU()->DrawRegisters();
 	}
 	void Application::HandleEvents()
 	{
+		OPTICK_EVENT();
 		SDL_Event Event;
 
 		while (SDL_PollEvent(&Event))
@@ -166,11 +184,21 @@ namespace NesEmulator
 				{
 					if (Event.key.keysym.scancode == SDL_GetScancodeFromKey(SDLK_z))
 					{
-						
+						for (int i = 0; i < 79662; i++)
+						{
+							//NesMachine.Clock();
+						}
 					}
 					else if (Event.key.keysym.scancode == SDL_GetScancodeFromKey(SDLK_x))
 					{
-						
+						for (int i = 0; i < 100; i++)
+						{
+							//NesMachine.Clock();
+						}
+					}
+					else if (Event.key.keysym.scancode == SDL_GetScancodeFromKey(SDLK_c))
+					{
+						//NesMachine.Clock();
 					}
 
 					break;
@@ -190,6 +218,80 @@ namespace NesEmulator
 					break;
 				}
 			}
+		}
+	}
+
+	void Application::InputConfiguration()
+	{
+		if (ShowInputConfig)
+		{
+			ImGui::Begin("Input Configuration", &ShowInputConfig);
+
+			ImGui::BeginGroup();
+			ImGui::Text("NES Controller Port #1");	
+			ImGui::Text("Controller Type: ");
+			ImGui::SetNextItemWidth(200.0f);
+			if (ImGui::BeginCombo("##ControllerOne", NesMachine.GetControllerOne()->GetTypeName().data()))
+			{
+				for (int i = 0; i < NesController::ControllerType::NumOfControllers; i++)
+				{
+					if (ImGui::Selectable(NesMachine.GetControllerOne()->GetTypeName((NesController::ControllerType)i).data()))
+					{
+						NesMachine.GetControllerOne()->SwitchController((NesController::ControllerType)i);
+					}
+				}
+				ImGui::EndCombo();
+			}
+			ImGui::Text("Input Device: ");
+			ImGui::SetNextItemWidth(200.0f);
+			if (ImGui::BeginCombo("##InputOne", NesMachine.GetControllerOne()->GetInputName().data()))
+			{
+				for (int i = 0; i < NesController::InputType::NumOfInputDevices; i++)
+				{
+					if (ImGui::Selectable(NesMachine.GetControllerOne()->GetInputName((NesController::InputType)i).data()))
+					{
+						NesMachine.GetControllerOne()->SwitchInputDevice((NesController::InputType)i);
+					}
+				}
+
+				ImGui::EndCombo();
+			}
+			ImGui::EndGroup();
+
+			ImGui::SameLine();
+
+			ImGui::BeginGroup();
+			ImGui::Text("NES Controller Port #2");
+			ImGui::Text("Controller Type: ");
+			ImGui::SetNextItemWidth(200.0f);
+			if (ImGui::BeginCombo("##ControllerTwo", NesMachine.GetControllerTwo()->GetTypeName().data()))
+			{
+				for (int i = 0; i < NesController::ControllerType::NumOfControllers; i++)
+				{
+					if (ImGui::Selectable(NesMachine.GetControllerTwo()->GetTypeName((NesController::ControllerType)i).data()))
+					{
+						NesMachine.GetControllerTwo()->SwitchController((NesController::ControllerType)i);
+					}
+				}
+				ImGui::EndCombo();
+			}
+			ImGui::Text("Input Device: ");
+			ImGui::SetNextItemWidth(200.0f);
+			if (ImGui::BeginCombo("##InputTwo", NesMachine.GetControllerTwo()->GetInputName().data()))
+			{
+				for (int i = 0; i < NesController::InputType::NumOfInputDevices; i++)
+				{
+					if (ImGui::Selectable(NesMachine.GetControllerTwo()->GetInputName((NesController::InputType)i).data()))
+					{
+						NesMachine.GetControllerTwo()->SwitchInputDevice((NesController::InputType)i);
+					}
+				}
+
+				ImGui::EndCombo();
+			}
+			ImGui::EndGroup();
+
+			ImGui::End();
 		}
 	}
 }
