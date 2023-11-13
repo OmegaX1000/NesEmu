@@ -164,7 +164,6 @@ namespace NesEmulator
 		//Draw everything else.
 		InputConfiguration();
 		
-		NesMachine.DrawCPUMemory();
 		NesMachine.GetPPU()->DrawRegisters();
 		NesMachine.GetPPU()->DrawPatternTable();
 		NesMachine.GetCPU()->DrawRegisters();

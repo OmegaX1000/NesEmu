@@ -1168,13 +1168,13 @@ namespace NesEmulator
 						UInt16 MemoryAddress = (HighAddresByte << 8) | LowAddresByte;
 						UInt8 MemoryValue = CPU->ReadRAM(MemoryAddress);
 
-						UInt8 Value = (MemoryValue ^ 0x00FF) - 1;
-						CPU->WriteRAM(MemoryAddress, Value);
-						CPU->Accumulator = CPU->Accumulator - Value;
+						UInt16 Value = (MemoryValue - 1) & 0xFF;;
+						CPU->WriteRAM(MemoryAddress, Value & 0x00FF);
+						UInt16 SecondResult = CPU->Accumulator - Value;
 
-						CPU->SetFlag(Negative, Value & 0x80);
-						CPU->SetFlag(Zero, (CPU->Accumulator == MemoryValue));
-						CPU->SetFlag(Carry, (Value <= CPU->Accumulator) ? 1 : 0);
+						CPU->SetFlag(Negative, SecondResult & 0x80);
+						CPU->SetFlag(Zero, (SecondResult == 0x00FF) == 0x0000);
+						CPU->SetFlag(Carry, (MemoryValue <= CPU->Accumulator) ? 1 : 0);
 						CPU->ProgramCounter++;
 					} };
 				OpTable[0xDF] = { {'D', 'C', 'P'}, 0xDF, AbsoluteIndexedX, 3, 7, [](NesCPU* CPU)
@@ -1186,14 +1186,14 @@ namespace NesEmulator
 						UInt16 MemoryAddress = (HighAddresByte << 8) | LowAddresByte;
 						MemoryAddress += CPU->Index_X;
 						UInt8 MemoryValue = CPU->ReadRAM(MemoryAddress);
+						UInt16 Result = (MemoryValue - 1) & 0xFF;
 
-						UInt8 Value = (MemoryValue ^ 0x00FF) - 1;
-						CPU->WriteRAM(MemoryAddress, Value);
-						CPU->Accumulator = CPU->Accumulator - Value;
+						CPU->WriteRAM(MemoryAddress, Result & 0x00FF);
+						UInt16 SecondResult = CPU->Accumulator - Result;
 
-						CPU->SetFlag(Negative, Value & 0x80);
-						CPU->SetFlag(Zero, (CPU->Accumulator == MemoryValue));
-						CPU->SetFlag(Carry, (Value <= CPU->Accumulator) ? 1 : 0);
+						CPU->SetFlag(Negative, SecondResult & 0x80);
+						CPU->SetFlag(Zero, (SecondResult == 0x00FF) == 0x0000);
+						CPU->SetFlag(Carry, (MemoryValue <= CPU->Accumulator) ? 1 : 0);
 						CPU->ProgramCounter++;
 					} };
 				OpTable[0xDB] = { {'D', 'C', 'P'}, 0xDB, AbsoluteIndexedY, 3, 7, [](NesCPU* CPU)
@@ -1206,13 +1206,13 @@ namespace NesEmulator
 						MemoryAddress += CPU->Index_Y;
 						UInt8 MemoryValue = CPU->ReadRAM(MemoryAddress);
 
-						UInt8 Value = (MemoryValue ^ 0x00FF) - 1;
-						CPU->WriteRAM(MemoryAddress, Value);
-						CPU->Accumulator = CPU->Accumulator - Value;
+						UInt16 Value = (MemoryValue - 1) & 0xFF;
+						CPU->WriteRAM(MemoryAddress, Value & 0x00FF);
+						UInt16 SecondResult = CPU->Accumulator - Value;
 
-						CPU->SetFlag(Negative, Value & 0x80);
-						CPU->SetFlag(Zero, (CPU->Accumulator == MemoryValue));
-						CPU->SetFlag(Carry, (Value <= CPU->Accumulator) ? 1 : 0);
+						CPU->SetFlag(Negative, SecondResult & 0x80);
+						CPU->SetFlag(Zero, (SecondResult == 0x00FF) == 0x0000);
+						CPU->SetFlag(Carry, (MemoryValue <= CPU->Accumulator) ? 1 : 0);
 						CPU->ProgramCounter++;
 					} };
 				OpTable[0xC7] = { {'D', 'C', 'P'}, 0xC7, ZeroPage, 2, 5, [](NesCPU* CPU)
@@ -1221,13 +1221,13 @@ namespace NesEmulator
 						UInt8 MemoryAddress = CPU->ReadRAM(CPU->ProgramCounter);
 						UInt8 MemoryValue = CPU->ReadRAM(MemoryAddress);
 
-						UInt8 Value = (MemoryValue ^ 0x00FF) - 1;
-						CPU->WriteRAM(MemoryAddress, Value);
-						CPU->Accumulator = CPU->Accumulator - Value;
+						UInt16 Value = (MemoryValue - 1) & 0xFF;
+						CPU->WriteRAM(MemoryAddress, Value & 0x00FF);
+						UInt16 SecondResult = CPU->Accumulator - Value;
 
-						CPU->SetFlag(Negative, Value & 0x80);
-						CPU->SetFlag(Zero, (CPU->Accumulator == MemoryValue));
-						CPU->SetFlag(Carry, (Value <= CPU->Accumulator) ? 1 : 0);
+						CPU->SetFlag(Negative, SecondResult & 0x80);
+						CPU->SetFlag(Zero, (SecondResult == 0x00FF) == 0x0000);
+						CPU->SetFlag(Carry, (MemoryValue <= CPU->Accumulator) ? 1 : 0);
 						CPU->ProgramCounter++;
 					} };
 				OpTable[0xD7] = { {'D', 'C', 'P'}, 0xD7, ZeroPageIndexX, 2, 6, [](NesCPU* CPU)
@@ -1236,13 +1236,13 @@ namespace NesEmulator
 						UInt8 MemoryAddress = (CPU->ReadRAM(CPU->ProgramCounter) + CPU->Index_X) & 0x00FF;
 						UInt8 MemoryValue = CPU->ReadRAM(MemoryAddress);
 
-						UInt8 Value = (MemoryValue ^ 0x00FF) - 1;
-						CPU->WriteRAM(MemoryAddress, Value);
-						CPU->Accumulator = CPU->Accumulator - Value;
+						UInt16 Value = (MemoryValue - 1) & 0xFF;
+						CPU->WriteRAM(MemoryAddress, Value & 0x00FF);
+						UInt16 SecondResult = CPU->Accumulator - Value;
 
-						CPU->SetFlag(Negative, Value & 0x80);
-						CPU->SetFlag(Zero, (CPU->Accumulator == MemoryValue));
-						CPU->SetFlag(Carry, (Value <= CPU->Accumulator) ? 1 : 0);
+						CPU->SetFlag(Negative, SecondResult & 0x80);
+						CPU->SetFlag(Zero, (SecondResult == 0x00FF) == 0x0000);
+						CPU->SetFlag(Carry, (MemoryValue <= CPU->Accumulator) ? 1 : 0);
 						CPU->ProgramCounter++;
 					} };
 				OpTable[0xC3] = { {'D', 'C', 'P'}, 0xC3, IndirectIndexedX, 2, 8, [](NesCPU* CPU)
@@ -1254,13 +1254,13 @@ namespace NesEmulator
 						UInt16 FinalMemoryAddress = (SecondAddressHigh << 8) | SecondAddressLow;
 						UInt8 MemoryValue = CPU->ReadRAM(FinalMemoryAddress);
 
-						UInt8 Value = (MemoryValue ^ 0x00FF) - 1;
-						CPU->WriteRAM(FinalMemoryAddress, Value);
-						CPU->Accumulator = CPU->Accumulator - Value;
+						UInt16 Value = (MemoryValue - 1) & 0xFF;
+						CPU->WriteRAM(FinalMemoryAddress, Value & 0x00FF);
+						UInt16 SecondResult = CPU->Accumulator - Value;
 
-						CPU->SetFlag(Negative, Value & 0x80);
-						CPU->SetFlag(Zero, (CPU->Accumulator == MemoryValue));
-						CPU->SetFlag(Carry, (Value <= CPU->Accumulator) ? 1 : 0);
+						CPU->SetFlag(Negative, SecondResult & 0x80);
+						CPU->SetFlag(Zero, (SecondResult == 0x00FF) == 0x0000);
+						CPU->SetFlag(Carry, (MemoryValue <= CPU->Accumulator) ? 1 : 0);
 						CPU->ProgramCounter++;
 					} };
 				OpTable[0xD3] = { {'D', 'C', 'P'}, 0xD3, IndirectIndexedY, 2, 8, [](NesCPU* CPU)
@@ -1273,13 +1273,13 @@ namespace NesEmulator
 						FinalMemoryAddress += CPU->Index_Y;
 						UInt8 MemoryValue = CPU->ReadRAM(FinalMemoryAddress);
 
-						UInt8 Value = (MemoryValue ^ 0x00FF) - 1;
+						UInt16 Value = (MemoryValue - 1) & 0xFF;
 						CPU->WriteRAM(FinalMemoryAddress, Value);
-						CPU->Accumulator = CPU->Accumulator - Value;
+						UInt16 SecondResult = CPU->Accumulator - Value;
 
-						CPU->SetFlag(Negative, Value & 0x80);
-						CPU->SetFlag(Zero, (CPU->Accumulator == MemoryValue));
-						CPU->SetFlag(Carry, (Value <= CPU->Accumulator) ? 1 : 0);
+						CPU->SetFlag(Negative, SecondResult & 0x80);
+						CPU->SetFlag(Zero, (SecondResult == 0x00FF) == 0x0000);
+						CPU->SetFlag(Carry, (MemoryValue <= CPU->Accumulator) ? 1 : 0);
 						CPU->ProgramCounter++;
 					} };
 			}
@@ -1297,6 +1297,21 @@ namespace NesEmulator
 			//SBC - Add Memory to Accumulator with Carry
 			{
 				OpTable[0xE9] = { {'S', 'B', 'C', '\0'}, 0xE9, Immediate, 2, 2, [](NesCPU* CPU)
+					{
+						CPU->ProgramCounter++;
+						UInt8 MemoryValue = CPU->ReadRAM(CPU->ProgramCounter);
+						UInt16 Value = ((UInt16)MemoryValue) ^ 0x00FF;
+						UInt16 Result = (UInt16)CPU->Accumulator + Value + (UInt16)CPU->GetFlag(Carry);
+
+						CPU->SetFlag(Carry, Result & 0xFF00);
+						CPU->SetFlag(Zero, ((Result & 0x00FF) == 0));
+						CPU->SetFlag(Overflow, (Result ^ (UInt16)CPU->Accumulator) & (Result ^ Value) & 0x80);
+						CPU->SetFlag(Negative, Result & 0x80);
+
+						CPU->Accumulator = Result & 0x00FF;
+						CPU->ProgramCounter++;
+					} };
+				OpTable[0xEB] = { {'S', 'B', 'C', '\0'}, 0xEB, Immediate, 2, 2, [](NesCPU* CPU)
 					{
 						CPU->ProgramCounter++;
 						UInt8 MemoryValue = CPU->ReadRAM(CPU->ProgramCounter);

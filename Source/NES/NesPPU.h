@@ -50,6 +50,23 @@ namespace NesEmulator
 				UInt8 Register = 0x00;
 			};
 
+			union Mask
+			{
+				struct
+				{
+					UInt8 Grayscale : 1;
+					UInt8 RenderBGLeft : 1;
+					UInt8 RenderSpriteLeft : 1;
+					UInt8 RenderBG : 1;
+					UInt8 RenderSprites : 1;
+					UInt8 Red : 1;
+					UInt8 Green : 1;
+					UInt8 Blue : 1;
+				};
+
+				UInt8 Register;
+			};
+
 		private:
 
 			//The console this device is a part of.
@@ -65,7 +82,7 @@ namespace NesEmulator
 
 			//Registers
 			Controller Controller;
-			UInt8  Mask		   = 0;
+			Mask Mask;
 			UInt8  Status	   = 0;
 			UInt8  OAM_Address = 0;
 			UInt8  OAM_Data	   = 0;

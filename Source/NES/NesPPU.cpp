@@ -110,7 +110,7 @@ namespace NesEmulator
 					case 7:
 					{
 						//Increment our XScoll, Ony if rendering is enabled
-						if (Mask & 0x08 || Mask & 0x10)
+						if (Mask.RenderBG || Mask.RenderSprites)
 						{
 							if (PPUAddress.CoarseX == 31)
 							{
@@ -133,7 +133,7 @@ namespace NesEmulator
 
 			if (PixelCounter == 256)
 			{
-				if (Mask & 0x08 || Mask & 0x10)
+				if (Mask.RenderBG || Mask.RenderSprites)
 				{
 					if (PPUAddress.FineY < 7)
 					{
@@ -164,7 +164,7 @@ namespace NesEmulator
 			{
 				LoadBGShiftRegisters();
 
-				if (Mask & 0x08 || Mask & 0x10)
+				if (Mask.RenderBG || Mask.RenderSprites)
 				{
 					PPUAddress.NameX = TempVRaddr.NameX;
 					PPUAddress.CoarseX = TempVRaddr.CoarseX;
@@ -178,7 +178,7 @@ namespace NesEmulator
 
 			if (ScanlineCounter == -1 && PixelCounter >= 280 && PixelCounter < 305)
 			{
-				if (Mask & 0x08 || Mask & 0x10)
+				if (Mask.RenderBG || Mask.RenderSprites)
 				{
 					PPUAddress.FineY = TempVRaddr.FineY;
 					PPUAddress.NameY = TempVRaddr.NameY;
@@ -206,7 +206,7 @@ namespace NesEmulator
 		UInt8 PixelIndex = 0x00;   //The 2-bit pixel to be rendered
 		UInt8 PaletteIndex = 0x00; //The 3-bit index of the palette the pixel indexes
 
-		if (Mask & 0x08)
+		if (Mask.RenderBG)
 		{
 			UInt16 bit_mux = 0x8000 >> Scroll;
 
@@ -271,7 +271,7 @@ namespace NesEmulator
 		ClockCounter = 0;
 
 		Controller.Register = 0;
-		Mask = 0;
+		Mask.Register = 0;
 		Scroll = 0;
 		PPUAddress.Register = 0x0000;
 		TempVRaddr.Register = 0x0000;
@@ -315,7 +315,7 @@ namespace NesEmulator
 
 				break;
 			}
-			case 0x001: Mask = Data; break;
+			case 0x001: Mask.Register = Data; break;
 			case 0x002: break;
 			case 0x003: OAM_Address = Data; break;
 			case 0x004: OAM_Data = Data; break;
@@ -356,7 +356,7 @@ namespace NesEmulator
 			{
 				PPUWrite(PPUAddress.Register, Data);
 
-				UInt8 Increment = ((Controller.Register) ? 32 : 1);
+				UInt8 Increment = ((Controller.IncrementMode) ? 32 : 1);
 				PPUAddress.Register += Increment;
 				break;
 			}
@@ -397,7 +397,7 @@ namespace NesEmulator
 					Data = PPUData;
 				}
 
-				UInt8 Increment = ((Controller.Register) ? 32 : 1);
+				UInt8 Increment = ((Controller.IncrementMode) ? 32 : 1);
 				PPUAddress.Register += Increment;
 
 				break;
@@ -556,7 +556,7 @@ namespace NesEmulator
 				Address = 0x000C;
 			}
 
-			ReturnData = PaletteRAM[Address] & ((Mask & 0x01) ? 0x30 : 0x3F);
+			ReturnData = PaletteRAM[Address] & ((Mask.Grayscale) ? 0x30 : 0x3F);
 		}
 
 		return ReturnData;
@@ -586,16 +586,16 @@ namespace NesEmulator
 		ImGui::Text("NMI Enable: %d", Controller.NMIEnable);
 		ImGui::Unindent();
 
-		ImGui::Text("Mask: 0x%X", Mask);
+		ImGui::Text("Mask: 0x%X", Mask.Register);
 		ImGui::Indent();
-		ImGui::Text("Greyscale: %d", (Mask & 0x01) ? 1 : 0);
-		ImGui::Text("BG Left Col Enable: %d", (Mask & 0x02) ? 1 : 0);
-		ImGui::Text("SP Left Col Enable: %d", (Mask & 0x04) ? 1 : 0);
-		ImGui::Text("Background Enable: %d", (Mask & 0x08) ? 1 : 0);
-		ImGui::Text("Sprite Enable: %d", (Mask & 0x10) ? 1 : 0);
-		ImGui::Text("Emphasize Red: %d", (Mask & 0x20) ? 1 : 0);
-		ImGui::Text("Emphasize Green: %d", (Mask & 0x40) ? 1 : 0);
-		ImGui::Text("Emphasize Blue: % d", (Mask & 0x80) ? 1 : 0);
+		ImGui::Text("Greyscale: %d", Mask.Grayscale);
+		ImGui::Text("BG Left Col Enable: %d", Mask.RenderBGLeft);
+		ImGui::Text("SP Left Col Enable: %d", Mask.RenderSpriteLeft);
+		ImGui::Text("Background Enable: %d", Mask.RenderBG);
+		ImGui::Text("Sprite Enable: %d", Mask.RenderSprites);
+		ImGui::Text("Emphasize Red: %d", Mask.Red);
+		ImGui::Text("Emphasize Green: %d", Mask.Green);
+		ImGui::Text("Emphasize Blue: % d", Mask.Blue);
 		ImGui::Unindent();
 
 		ImGui::Text("Status: 0x%X", Status);
@@ -741,7 +741,7 @@ namespace NesEmulator
 	void NesPPU::ShiftBGRegisters()
 	{
 		//Shift Our Registers.
-		if (Mask & 0x08)
+		if (Mask.RenderBG)
 		{
 			HighBGtileInfo <<= 1;
 			LowBGtileInfo <<= 1;
