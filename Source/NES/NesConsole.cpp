@@ -121,52 +121,91 @@ namespace NesEmulator
 	{
 		OPTICK_EVENT();
 		
-		if (ControllerOne.GetWriteBuffer()->ControlPort == 1)
+		if (PollingInput == true && ControllerOne.GetWriteBuffer()->ControlPort == 1)
 		{
 			switch (ControllerOne.GetType())
 			{
 				case NesController::ControllerType::StandardController:
 				{
-					ControllerOne.StandardControllerButtons = 0x00;
-					ControllerOne.StandardControllerButtons |= ImGui::IsKeyDown(ImGuiKey_Z) ? 0x01 : 0x00;
-					ControllerOne.StandardControllerButtons |= ImGui::IsKeyDown(ImGuiKey_X) ? 0x02 : 0x00;
-					ControllerOne.StandardControllerButtons |= ImGui::IsKeyDown(ImGuiKey_A) ? 0x04 : 0x00;
-					ControllerOne.StandardControllerButtons |= ImGui::IsKeyDown(ImGuiKey_S) ? 0x08 : 0x00;
-					ControllerOne.StandardControllerButtons |= ImGui::IsKeyDown(ImGuiKey_UpArrow) ? 0x10 : 0x00;
-					ControllerOne.StandardControllerButtons |= ImGui::IsKeyDown(ImGuiKey_DownArrow) ? 0x20 : 0x00;
-					ControllerOne.StandardControllerButtons |= ImGui::IsKeyDown(ImGuiKey_LeftArrow) ? 0x40 : 0x00;
-					ControllerOne.StandardControllerButtons |= ImGui::IsKeyDown(ImGuiKey_RightArrow) ? 0x80 : 0x00;
+					if (ControllerOne.GetInputDevice() == NesController::Keyboard)
+					{
+						ControllerOne.StandardControllerButtons = 0x00;
+						ControllerOne.StandardControllerButtons |= ImGui::IsKeyDown(ControllerOne.StandardControllerKeyboard[0]) ? 0x01 : 0x00;
+						ControllerOne.StandardControllerButtons |= ImGui::IsKeyDown(ControllerOne.StandardControllerKeyboard[1]) ? 0x02 : 0x00;
+						ControllerOne.StandardControllerButtons |= ImGui::IsKeyDown(ControllerOne.StandardControllerKeyboard[2]) ? 0x04 : 0x00;
+						ControllerOne.StandardControllerButtons |= ImGui::IsKeyDown(ControllerOne.StandardControllerKeyboard[3]) ? 0x08 : 0x00;
+						ControllerOne.StandardControllerButtons |= ImGui::IsKeyDown(ControllerOne.StandardControllerKeyboard[4]) ? 0x10 : 0x00;
+						ControllerOne.StandardControllerButtons |= ImGui::IsKeyDown(ControllerOne.StandardControllerKeyboard[5]) ? 0x20 : 0x00;
+						ControllerOne.StandardControllerButtons |= ImGui::IsKeyDown(ControllerOne.StandardControllerKeyboard[6]) ? 0x40 : 0x00;
+						ControllerOne.StandardControllerButtons |= ImGui::IsKeyDown(ControllerOne.StandardControllerKeyboard[7]) ? 0x80 : 0x00;
+					}
+					else if (ControllerOne.GetInputDevice() == NesController::Gamepad)
+					{
+						ControllerOne.StandardControllerButtons = 0x00;
+						ControllerOne.StandardControllerButtons |= ImGui::IsKeyDown(ControllerOne.StandardControllerGamepad[0]) ? 0x01 : 0x00;
+						ControllerOne.StandardControllerButtons |= ImGui::IsKeyDown(ControllerOne.StandardControllerGamepad[1]) ? 0x02 : 0x00;
+						ControllerOne.StandardControllerButtons |= ImGui::IsKeyDown(ControllerOne.StandardControllerGamepad[2]) ? 0x04 : 0x00;
+						ControllerOne.StandardControllerButtons |= ImGui::IsKeyDown(ControllerOne.StandardControllerGamepad[3]) ? 0x08 : 0x00;
+						ControllerOne.StandardControllerButtons |= ImGui::IsKeyDown(ControllerOne.StandardControllerGamepad[4]) ? 0x10 : 0x00;
+						ControllerOne.StandardControllerButtons |= ImGui::IsKeyDown(ControllerOne.StandardControllerGamepad[5]) ? 0x20 : 0x00;
+						ControllerOne.StandardControllerButtons |= ImGui::IsKeyDown(ControllerOne.StandardControllerGamepad[6]) ? 0x40 : 0x00;
+						ControllerOne.StandardControllerButtons |= ImGui::IsKeyDown(ControllerOne.StandardControllerGamepad[7]) ? 0x80 : 0x00;
+					}
+
 					break;
 				}
 				default: break;
 			}
 		}
 
-		if (ControllerTwo.GetWriteBuffer()->ControlPort == 1)
+		if (PollingInput == true && ControllerTwo.GetWriteBuffer()->ControlPort == 1)
 		{
 			switch (ControllerTwo.GetType())
 			{
 				case NesController::ControllerType::StandardController:
 				{
-					ControllerTwo.StandardControllerButtons = 0x00;
-					ControllerTwo.StandardControllerButtons |= ImGui::IsKeyDown(ImGuiKey_Z) ? 0x01 : 0x00;
-					ControllerTwo.StandardControllerButtons |= ImGui::IsKeyDown(ImGuiKey_X) ? 0x02 : 0x00;
-					ControllerTwo.StandardControllerButtons |= ImGui::IsKeyDown(ImGuiKey_A) ? 0x04 : 0x00;
-					ControllerTwo.StandardControllerButtons |= ImGui::IsKeyDown(ImGuiKey_S) ? 0x08 : 0x00;
-					ControllerTwo.StandardControllerButtons |= ImGui::IsKeyDown(ImGuiKey_UpArrow) ? 0x10 : 0x00;
-					ControllerTwo.StandardControllerButtons |= ImGui::IsKeyDown(ImGuiKey_DownArrow) ? 0x20 : 0x00;
-					ControllerTwo.StandardControllerButtons |= ImGui::IsKeyDown(ImGuiKey_LeftArrow) ? 0x40 : 0x00;
-					ControllerTwo.StandardControllerButtons |= ImGui::IsKeyDown(ImGuiKey_RightArrow) ? 0x80 : 0x00;
+					if (ControllerTwo.GetInputDevice() == NesController::Keyboard)
+					{
+						ControllerTwo.StandardControllerButtons = 0x00;
+						ControllerTwo.StandardControllerButtons |= ImGui::IsKeyDown(ControllerTwo.StandardControllerKeyboard[0]) ? 0x01 : 0x00;
+						ControllerTwo.StandardControllerButtons |= ImGui::IsKeyDown(ControllerTwo.StandardControllerKeyboard[1]) ? 0x02 : 0x00;
+						ControllerTwo.StandardControllerButtons |= ImGui::IsKeyDown(ControllerTwo.StandardControllerKeyboard[2]) ? 0x04 : 0x00;
+						ControllerTwo.StandardControllerButtons |= ImGui::IsKeyDown(ControllerTwo.StandardControllerKeyboard[3]) ? 0x08 : 0x00;
+						ControllerTwo.StandardControllerButtons |= ImGui::IsKeyDown(ControllerTwo.StandardControllerKeyboard[4]) ? 0x10 : 0x00;
+						ControllerTwo.StandardControllerButtons |= ImGui::IsKeyDown(ControllerTwo.StandardControllerKeyboard[5]) ? 0x20 : 0x00;
+						ControllerTwo.StandardControllerButtons |= ImGui::IsKeyDown(ControllerTwo.StandardControllerKeyboard[6]) ? 0x40 : 0x00;
+						ControllerTwo.StandardControllerButtons |= ImGui::IsKeyDown(ControllerTwo.StandardControllerKeyboard[7]) ? 0x80 : 0x00;
+					}
+					else if (ControllerTwo.GetInputDevice() == NesController::Gamepad)
+					{
+						ControllerTwo.StandardControllerButtons = 0x00;
+						ControllerTwo.StandardControllerButtons |= ImGui::IsKeyDown(ControllerTwo.StandardControllerGamepad[0]) ? 0x01 : 0x00;
+						ControllerTwo.StandardControllerButtons |= ImGui::IsKeyDown(ControllerTwo.StandardControllerGamepad[1]) ? 0x02 : 0x00;
+						ControllerTwo.StandardControllerButtons |= ImGui::IsKeyDown(ControllerTwo.StandardControllerGamepad[2]) ? 0x04 : 0x00;
+						ControllerTwo.StandardControllerButtons |= ImGui::IsKeyDown(ControllerTwo.StandardControllerGamepad[3]) ? 0x08 : 0x00;
+						ControllerTwo.StandardControllerButtons |= ImGui::IsKeyDown(ControllerTwo.StandardControllerGamepad[4]) ? 0x10 : 0x00;
+						ControllerTwo.StandardControllerButtons |= ImGui::IsKeyDown(ControllerTwo.StandardControllerGamepad[5]) ? 0x20 : 0x00;
+						ControllerTwo.StandardControllerButtons |= ImGui::IsKeyDown(ControllerTwo.StandardControllerGamepad[6]) ? 0x40 : 0x00;
+						ControllerTwo.StandardControllerButtons |= ImGui::IsKeyDown(ControllerTwo.StandardControllerGamepad[7]) ? 0x80 : 0x00;
+					}
+
 					break;
 				}
 				default: break;
 			}
 		}
 	}
-	void NesConsole::DrawCPUMemory()
+	
+	void NesConsole::TurnoffPolling()
 	{
-		static MemoryEditor MemoryViewer;
-		MemoryViewer.DrawWindow("CPU RAM", Ram, sizeof(Ram));
+		if (ImGui::IsWindowFocused())
+		{
+			PollingInput = false;
+		}
+		else
+		{
+			PollingInput = true;
+		}
 	}
 
 	void NesConsole::CPUWrite(UInt16 Address, UInt8 Data)

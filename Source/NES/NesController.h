@@ -2,6 +2,8 @@
 #include "Definitions.h"
 #include <string>
 
+#include <imgui.h>
+
 namespace NesEmulator
 {
 	class NesController
@@ -59,7 +61,10 @@ namespace NesEmulator
 
 			//Controller Specific variables
 			UInt8 StandardControllerButtons = 0x00;
+			ImGuiKey StandardControllerKeyboard[8];
+			ImGuiKey StandardControllerGamepad[8];
 
+			//General Getters.
 			ControllerType GetType();
 			std::string_view GetTypeName();
 			std::string_view GetTypeName(ControllerType ID);
@@ -69,6 +74,10 @@ namespace NesEmulator
 			ControllerLatch* GetWriteBuffer();
 			DataLine* GetReadBuffer();
 
+			//Specific Getters.
+			std::string_view GetButtonName(UInt8 ButtonID);
+
+			//Useful Functions.
 			void SwitchController(ControllerType NewGamepad);
 			void SwitchInputDevice(InputType NewInput);
 			void ControllerWrite(UInt8 Data);

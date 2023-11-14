@@ -17,7 +17,7 @@ namespace NesEmulator
 		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 		io.BackendFlags |= ImGuiBackendFlags_HasMouseCursors;
 		io.BackendFlags |= ImGuiBackendFlags_HasSetMousePos;
-
+		
 		RenderData.BaseVertexSupported = Device->GetAdapterInfo().DrawCommand.CapFlags & Diligent::DRAW_COMMAND_CAP_FLAG_BASE_VERTEX;
 		if (RenderData.BaseVertexSupported)
 		{

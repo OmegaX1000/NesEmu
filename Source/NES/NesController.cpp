@@ -4,7 +4,8 @@ namespace NesEmulator
 {
 	NesController::NesController() : Type(ControllerType::NoController), Device(InputType::NoInput)
 	{
-
+		std::fill_n(StandardControllerKeyboard, 8, ImGuiKey_None);
+		std::fill_n(StandardControllerGamepad, 8, ImGuiKey_None);
 	}
 	NesController::~NesController()
 	{
@@ -64,6 +65,31 @@ namespace NesEmulator
 	NesController::DataLine* NesController::GetReadBuffer()
 	{
 		return &ReadBuffer;
+	}
+
+	std::string_view NesController::GetButtonName(UInt8 ButtonID)
+	{
+		switch (Type)
+		{
+			case StandardController:
+			{
+				switch (ButtonID)
+				{
+					case 0: return "A"; break;
+					case 1: return "B"; break;
+					case 2: return "Select"; break;
+					case 3: return "Start"; break;
+					case 4: return "Up"; break;
+					case 5: return "Down"; break;
+					case 6: return "Left"; break;
+					case 7: return "Right"; break;
+				}
+
+				break;
+			}
+		}
+
+		return "";
 	}
 
 	void NesController::SwitchController(ControllerType NewGamepad)

@@ -34,6 +34,9 @@ namespace NesEmulator
 			//The Cartridge that holds our Program.
 			std::shared_ptr<NesCartridge> Cartridge;
 
+			//Other Variables
+			bool PollingInput = false;
+
 		public:
 
 			//Constructor & Destructor
@@ -46,7 +49,7 @@ namespace NesEmulator
 			void UpdateVideoOutput(Diligent::IRenderDevice* RenderDevice, Diligent::IDeviceContext* Context);
 			void PollControllers();
 
-			void DrawCPUMemory();
+			void TurnoffPolling();
 
 			//RAM Functions
 			void CPUWrite(UInt16 Address, UInt8 Data); //CPU WriteRam Function.

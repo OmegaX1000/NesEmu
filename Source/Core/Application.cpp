@@ -46,11 +46,16 @@ namespace NesEmulator
 			GuiLayer.ImGuiCreate(GraphicsSystem.GetDevice(), GraphicsSystem.GetSwapChain());
 			NesMachine.InsertCartridge("F:/OmegaGamingHunters Folder/TestNES Emulator/Assets/Programs/nestest.nes");
 		}
+		else
+		{
+			SDL_Quit();
+		}
 	}
 	Application::~Application()
 	{
 		OPTICK_EVENT("Application Exit");
 		GuiLayer.ImGuiDestroy();
+
 		NFD_Quit();
 		SDL_Quit();
 	}
@@ -213,6 +218,7 @@ namespace NesEmulator
 				}
 				case SDL_QUIT:
 				{
+					SDL_DestroyWindow(MainWindow);
 					ProgramLoop = false;
 					break;
 				}
@@ -225,6 +231,7 @@ namespace NesEmulator
 		if (ShowInputConfig)
 		{
 			ImGui::Begin("Input Configuration", &ShowInputConfig);
+			NesMachine.TurnoffPolling();
 
 			ImGui::BeginGroup();
 			ImGui::Text("NES Controller Port #1");	
@@ -254,6 +261,130 @@ namespace NesEmulator
 				}
 
 				ImGui::EndCombo();
+			}
+			
+			//Button Mapping
+			switch (NesMachine.GetControllerOne()->GetType())
+			{
+				case NesController::StandardController:
+				{
+					ImGui::BeginGroup();
+					ImGui::Text("Button: ");
+					ImGui::SetNextItemWidth(100.0f);
+
+					static UInt8 StandardButtonPreview = 0;
+					static bool KeyLookingForInput = false;
+
+					if (ImGui::BeginCombo("##StandardButtons", NesMachine.GetControllerOne()->GetButtonName(StandardButtonPreview).data()))
+					{
+						for (int i = 0; i < 8; i++)
+						{
+							if (ImGui::Selectable(NesMachine.GetControllerOne()->GetButtonName(i).data()))
+							{
+								StandardButtonPreview = i;
+								KeyLookingForInput = false;
+							}
+						}
+
+						ImGui::EndCombo();
+					}
+
+					ImGui::EndGroup();
+					ImGui::SameLine();
+					ImGui::BeginGroup();
+
+					if (NesMachine.GetControllerOne()->GetInputDevice() == NesController::Keyboard)
+					{
+						ImGui::Text("Key: ");
+						ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 0.0f));
+						ImGui::PushStyleVar(ImGuiStyleVar_SelectableTextAlign, ImVec2(0.1f, 0.5f));
+						
+						if (ImGui::Selectable(ImGui::GetKeyName(NesMachine.GetControllerOne()->StandardControllerKeyboard[StandardButtonPreview]), KeyLookingForInput, ImGuiSelectableFlags_AllowDoubleClick, ImVec2(100.0f, 18.0f)))
+						{
+							KeyLookingForInput = !KeyLookingForInput;
+						}
+
+						if (KeyLookingForInput)
+						{
+							for (ImGuiKey key = ImGuiKey_NamedKey_BEGIN; key < ImGuiKey_NamedKey_END; key = (ImGuiKey)(key + 1))
+							{
+								if (ImGui::IsKeyDown(key) && ImGui::IsKeyboardKey(key))
+								{
+									NesMachine.GetControllerOne()->StandardControllerKeyboard[StandardButtonPreview] = key;
+									KeyLookingForInput = false;
+									break;
+								}
+							}
+						}
+
+						ImGui::PopStyleVar(2);
+					}
+					else if (NesMachine.GetControllerOne()->GetInputDevice() == NesController::Gamepad)
+					{
+						ImGui::Text("Button: ");
+						ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 0.0f));
+						ImGui::PushStyleVar(ImGuiStyleVar_SelectableTextAlign, ImVec2(0.1f, 0.5f));
+
+						if (ImGui::Selectable(ImGui::GetKeyName(NesMachine.GetControllerOne()->StandardControllerGamepad[StandardButtonPreview]), KeyLookingForInput, ImGuiSelectableFlags_AllowDoubleClick, ImVec2(100.0f, 18.0f)))
+						{
+							KeyLookingForInput = !KeyLookingForInput;
+						}
+
+						if (KeyLookingForInput)
+						{
+							for (ImGuiKey key = ImGuiKey_NamedKey_BEGIN; key < ImGuiKey_NamedKey_END; key = (ImGuiKey)(key + 1))
+							{
+								if (ImGui::IsKeyDown(key) && ImGui::IsGamepadKey(key))
+								{
+									NesMachine.GetControllerOne()->StandardControllerGamepad[StandardButtonPreview] = key;
+									KeyLookingForInput = false;
+									break;
+								}
+							}
+						}
+
+						ImGui::PopStyleVar(2);
+					}
+					else
+					{
+						ImGui::Text("Binding: ");
+						ImGui::SetNextItemWidth(100.0f);
+						
+						if (ImGui::BeginCombo("##NullBindings", nullptr))
+						{
+							ImGui::EndCombo();
+						}
+					}
+
+					ImGui::EndGroup();
+					break;
+				}
+				default:
+				{
+					ImGui::BeginGroup();
+					ImGui::Text("Button: ");
+					ImGui::SetNextItemWidth(100.0f);
+
+					if (ImGui::BeginCombo("##NullButtons", nullptr))
+					{
+						ImGui::EndCombo();
+					}
+
+					ImGui::EndGroup();
+					ImGui::SameLine();
+					ImGui::BeginGroup();
+
+					ImGui::Text("Binding: ");
+					ImGui::SetNextItemWidth(100.0f);
+
+					if (ImGui::BeginCombo("##NullBindings", nullptr))
+					{
+						ImGui::EndCombo();
+					}
+
+					ImGui::EndGroup();
+					break;
+				}
 			}
 			ImGui::EndGroup();
 
@@ -287,6 +418,130 @@ namespace NesEmulator
 				}
 
 				ImGui::EndCombo();
+			}
+
+			//Button Mapping
+			switch (NesMachine.GetControllerTwo()->GetType())
+			{
+				case NesController::StandardController:
+				{
+					ImGui::BeginGroup();
+					ImGui::Text("Button: ");
+					ImGui::SetNextItemWidth(100.0f);
+
+					static UInt8 StandardButtonPreviewTwo = 0;
+					static bool KeyLookingForInputTwo = false;
+
+					if (ImGui::BeginCombo("##StandardButtonsTwo", NesMachine.GetControllerTwo()->GetButtonName(StandardButtonPreviewTwo).data()))
+					{
+						for (int i = 0; i < 8; i++)
+						{
+							if (ImGui::Selectable(NesMachine.GetControllerTwo()->GetButtonName(i).data()))
+							{
+								StandardButtonPreviewTwo = i;
+								KeyLookingForInputTwo = false;
+							}
+						}
+
+						ImGui::EndCombo();
+					}
+
+					ImGui::EndGroup();
+					ImGui::SameLine();
+					ImGui::BeginGroup();
+
+					if (NesMachine.GetControllerTwo()->GetInputDevice() == NesController::Keyboard)
+					{
+						ImGui::Text("Key: ");
+						ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 0.0f));
+						ImGui::PushStyleVar(ImGuiStyleVar_SelectableTextAlign, ImVec2(0.1f, 0.5f));
+
+						if (ImGui::Selectable(ImGui::GetKeyName(NesMachine.GetControllerTwo()->StandardControllerKeyboard[StandardButtonPreviewTwo]), KeyLookingForInputTwo, ImGuiSelectableFlags_AllowDoubleClick, ImVec2(100.0f, 18.0f)))
+						{
+							KeyLookingForInputTwo = !KeyLookingForInputTwo;
+						}
+
+						if (KeyLookingForInputTwo)
+						{
+							for (ImGuiKey key = ImGuiKey_NamedKey_BEGIN; key < ImGuiKey_NamedKey_END; key = (ImGuiKey)(key + 1))
+							{
+								if (ImGui::IsKeyDown(key) && ImGui::IsKeyboardKey(key))
+								{
+									NesMachine.GetControllerTwo()->StandardControllerKeyboard[StandardButtonPreviewTwo] = key;
+									KeyLookingForInputTwo = false;
+									break;
+								}
+							}
+						}
+
+						ImGui::PopStyleVar(2);
+					}
+					else if (NesMachine.GetControllerTwo()->GetInputDevice() == NesController::Gamepad)
+					{
+						ImGui::Text("Button: ");
+						ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 0.0f));
+						ImGui::PushStyleVar(ImGuiStyleVar_SelectableTextAlign, ImVec2(0.1f, 0.5f));
+
+						if (ImGui::Selectable(ImGui::GetKeyName(NesMachine.GetControllerTwo()->StandardControllerGamepad[StandardButtonPreviewTwo]), KeyLookingForInputTwo, ImGuiSelectableFlags_AllowDoubleClick, ImVec2(100.0f, 18.0f)))
+						{
+							KeyLookingForInputTwo = !KeyLookingForInputTwo;
+						}
+
+						if (KeyLookingForInputTwo)
+						{
+							for (ImGuiKey key = ImGuiKey_NamedKey_BEGIN; key < ImGuiKey_NamedKey_END; key = (ImGuiKey)(key + 1))
+							{
+								if (ImGui::IsKeyDown(key) && ImGui::IsGamepadKey(key))
+								{
+									NesMachine.GetControllerTwo()->StandardControllerGamepad[StandardButtonPreviewTwo] = key;
+									KeyLookingForInputTwo = false;
+									break;
+								}
+							}
+						}
+
+						ImGui::PopStyleVar(2);
+					}
+					else
+					{
+						ImGui::Text("Binding: ");
+						ImGui::SetNextItemWidth(100.0f);
+
+						if (ImGui::BeginCombo("##NullBindingsTwo", nullptr))
+						{
+							ImGui::EndCombo();
+						}
+					}
+
+					ImGui::EndGroup();
+					break;
+				}
+				default:
+				{
+					ImGui::BeginGroup();
+					ImGui::Text("Button: ");
+					ImGui::SetNextItemWidth(100.0f);
+
+					if (ImGui::BeginCombo("##NullButtonsTwo", nullptr))
+					{
+						ImGui::EndCombo();
+					}
+
+					ImGui::EndGroup();
+					ImGui::SameLine();
+					ImGui::BeginGroup();
+
+					ImGui::Text("Binding: ");
+					ImGui::SetNextItemWidth(100.0f);
+
+					if (ImGui::BeginCombo("##NullBindingsTwo", nullptr))
+					{
+						ImGui::EndCombo();
+					}
+
+					ImGui::EndGroup();
+					break;
+				}
 			}
 			ImGui::EndGroup();
 
