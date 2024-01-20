@@ -39,8 +39,11 @@ namespace NesEmulator
 			bool ProgramLoop = true;
 
 			bool ShowInputConfig = false;
+			bool ShowOAMview = false;
 
+			//Private Functions
 			void LoadConfigSettings(std::istream* FileString);
+			void UpdateDebugSpriteTable();
 
 			//Window Properties.
 			SDL_Window* MainWindow;
@@ -50,7 +53,11 @@ namespace NesEmulator
 			UInt32 WindowFlags = SDL_WINDOW_RESIZABLE;
 
 			//ImGui Windows
+			void OAMSpriteView();
 			void InputConfiguration();
+
+			//Textures
+			Diligent::RefCntAutoPtr<Diligent::ITextureView> SpriteView;
 
 		public:
 

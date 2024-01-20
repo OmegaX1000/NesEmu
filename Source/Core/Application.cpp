@@ -42,9 +42,25 @@ namespace NesEmulator
 				CORE_TRACE("NativeFileDialog failed to Initalized!");
 			}
 
+			//Initalize our Graphics, Audio, and Emulator
 			GraphicsSystem.InitalizeRenderer(MainWindow, Diligent::RENDER_DEVICE_TYPE_D3D12);
 			GuiLayer.ImGuiCreate(GraphicsSystem.GetDevice(), GraphicsSystem.GetSwapChain());
 			NesMachine.InsertCartridge("F:/OmegaGamingHunters Folder/TestNES Emulator/Assets/Programs/nestest.nes");
+
+			//Create our Debug Textures.
+			Diligent::TextureDesc SpriteTableDesc;
+			SpriteTableDesc.Name = "OAM View";
+			SpriteTableDesc.Type = Diligent::RESOURCE_DIM_TEX_2D;
+			SpriteTableDesc.Width = 64;
+			SpriteTableDesc.Height = 64;
+			SpriteTableDesc.Format = Diligent::TEX_FORMAT_RGBA8_UNORM_SRGB;
+			SpriteTableDesc.BindFlags = Diligent::BIND_SHADER_RESOURCE;
+			SpriteTableDesc.Usage = Diligent::USAGE_DYNAMIC;
+
+			Diligent::RefCntAutoPtr<Diligent::ITexture> SpriteTexture;
+			GraphicsSystem.GetDevice()->CreateTexture(SpriteTableDesc, nullptr, &SpriteTexture);
+			SpriteView = SpriteTexture->GetDefaultView(Diligent::TEXTURE_VIEW_SHADER_RESOURCE);
+			SpriteTexture.Release();
 		}
 		else
 		{
@@ -64,6 +80,77 @@ namespace NesEmulator
 	{
 		OPTICK_EVENT();
 		//nlohmann::json Settings = nlohmann::json::parse(File);
+	}
+	void Application::UpdateDebugSpriteTable()
+	{
+		OPTICK_EVENT();
+
+		if (ShowOAMview == true)
+		{
+			UInt8* SpritePixels = new UInt8[16384];
+			std::fill_n(SpritePixels, 16384, 0);
+
+			for (UInt8 TableY = 0; TableY < 8; TableY++)
+			{
+				UInt16 OffsetY = TableY * 128;
+
+				for (UInt8 TableX = 0; TableX < 8; TableX++)
+				{
+					UInt16 OffsetX = TableX * 16;
+					UInt8 Lookup = (TableY * 8) + TableX;
+					UInt8 TileIndex = NesMachine.GetPPU()->PrimaryOAM[Lookup].TileIndex;
+					UInt16 TileOffset = TileIndex * 16;
+
+					UInt16 StartPoint = (NesMachine.GetPPU()->Controller.SpriteTableAddr) ? 0x1000 : 0x0000;
+
+					for (int row = 0; row < 8; row++)
+					{
+						UInt8 PlaneZero = NesMachine.GetPPU()->PPURead(StartPoint + TileOffset + row);
+						UInt8 PlaneOne = NesMachine.GetPPU()->PPURead(StartPoint + TileOffset + row + 8);
+
+						for (int col = 0; col < 8; col++)
+						{
+							UInt8 PalLow = PlaneZero & 0x01;
+							UInt8 PalHigh = (PlaneOne & 0x01) << 1;
+							UInt8 PixelIndex = PalHigh + PalLow;
+
+							PlaneZero >>= 1;
+							PlaneOne >>= 1;
+
+							UInt16 RedPixelPos = (OffsetY * 16) + (OffsetX * 2) + (row * 256) + ((7 - col) * 4);
+							UInt16 GreenPixelPos = (OffsetY * 16) + (OffsetX * 2) + (row * 256) + ((7 - col) * 4) + 1;
+							UInt16 BluePixelPos = (OffsetY * 16) + (OffsetX * 2) + (row * 256) + ((7 - col) * 4) + 2;
+							UInt16 AlphaPixelPos = (OffsetY * 16) + (OffsetX * 2) + (row * 256) + ((7 - col) * 4) + 3;
+
+							UInt8 PalatteSelect = NesMachine.GetPPU()->PPURead(0x3F00 + ((NesMachine.GetPPU()->PrimaryOAM[TileIndex].Attribute.Palette + 0x04) << 2) + PixelIndex) & 0x3F;
+							UInt8 RedValue = NesMachine.GetPPU()->PaletteColors[PalatteSelect].x * float(0xFF);
+							UInt8 GreenValue = NesMachine.GetPPU()->PaletteColors[PalatteSelect].y * float(0xFF);
+							UInt8 BlueValue = NesMachine.GetPPU()->PaletteColors[PalatteSelect].z * float(0xFF);
+						
+							SpritePixels[RedPixelPos] = RedValue;
+							SpritePixels[GreenPixelPos] = GreenValue;
+							SpritePixels[BluePixelPos] = BlueValue;
+							SpritePixels[AlphaPixelPos] = (PixelIndex != 0) ? 255 : 0;
+						}
+					}
+				}
+			}
+
+			Diligent::Box MapRegion;
+			UInt32 Width = 64;
+			UInt32 Height = 64;
+			MapRegion.MaxX = Width;
+			MapRegion.MaxY = Height;
+
+			Diligent::TextureSubResData SubresData;
+			SubresData.Stride = size_t{ Width } *4u;
+			SubresData.pData = SpritePixels;
+			UInt32 MipLevel = 0;
+			UInt32 ArraySlice = 0;
+
+			GraphicsSystem.GetContext()->UpdateTexture(SpriteView->GetTexture(), MipLevel, ArraySlice, MapRegion, SubresData, Diligent::RESOURCE_STATE_TRANSITION_MODE_TRANSITION, Diligent::RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
+			delete[] SpritePixels;
+		}
 	}
 
 	Application& Application::Get()
@@ -91,6 +178,7 @@ namespace NesEmulator
 			NesMachine.UpdateVideoOutput(GraphicsSystem.GetDevice(), GraphicsSystem.GetContext());
 			NesMachine.GetPPU()->FrameComplete = false;
 			NesMachine.GetPPU()->UpdateDebugPatternTable(GraphicsSystem.GetDevice());
+			UpdateDebugSpriteTable();
 
 			//Render the GUI
 			UpdateUI();
@@ -150,6 +238,23 @@ namespace NesEmulator
 			{
 				ImGui::EndMenu();
 			}
+			if (ImGui::BeginMenu("Debug"))
+			{
+				if (ImGui::MenuItem("View Pattern Tables"))
+				{
+					
+				}
+				if (ImGui::MenuItem("View Nametables"))
+				{
+					
+				}
+				if (ImGui::MenuItem("View OAM"))
+				{
+					ShowOAMview = true;
+				}
+
+				ImGui::EndMenu();
+			}
 			if (ImGui::BeginMenu("Help"))
 			{
 				if (ImGui::MenuItem("About"))
@@ -168,6 +273,7 @@ namespace NesEmulator
 
 		//Draw everything else.
 		InputConfiguration();
+		OAMSpriteView();
 		
 		NesMachine.GetPPU()->DrawRegisters();
 		NesMachine.GetPPU()->DrawPatternTable();
@@ -226,6 +332,17 @@ namespace NesEmulator
 		}
 	}
 
+	void Application::OAMSpriteView()
+	{
+		OPTICK_EVENT();
+
+		if (ShowOAMview == true)
+		{
+			ImGui::Begin("OAM Sprites", &ShowOAMview);
+			ImGui::Image((void*)SpriteView, ImVec2(256, 256), ImVec2(0, 0), ImVec2(1, 1), ImVec4(1, 1, 1, 1), ImVec4(1, 1, 1, 1));
+			ImGui::End();
+		}
+	}
 	void Application::InputConfiguration()
 	{
 		if (ShowInputConfig)

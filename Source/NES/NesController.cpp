@@ -4,7 +4,15 @@ namespace NesEmulator
 {
 	NesController::NesController() : Type(ControllerType::NoController), Device(InputType::NoInput)
 	{
-		std::fill_n(StandardControllerKeyboard, 8, ImGuiKey_None);
+		StandardControllerKeyboard[0] = ImGuiKey_Z;
+		StandardControllerKeyboard[1] = ImGuiKey_X;
+		StandardControllerKeyboard[2] = ImGuiKey_A;
+		StandardControllerKeyboard[3] = ImGuiKey_S;
+		StandardControllerKeyboard[4] = ImGuiKey_UpArrow;
+		StandardControllerKeyboard[5] = ImGuiKey_DownArrow;
+		StandardControllerKeyboard[6] = ImGuiKey_LeftArrow;
+		StandardControllerKeyboard[7] = ImGuiKey_RightArrow;
+
 		std::fill_n(StandardControllerGamepad, 8, ImGuiKey_None);
 	}
 	NesController::~NesController()

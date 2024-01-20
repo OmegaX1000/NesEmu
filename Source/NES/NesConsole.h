@@ -34,6 +34,13 @@ namespace NesEmulator
 			//The Cartridge that holds our Program.
 			std::shared_ptr<NesCartridge> Cartridge;
 
+			//DMA
+			bool DMA_Transfer = false;
+			bool DMA_Wait = true;
+			UInt8 DMA_Page = 0x00;
+			UInt8 DMA_Address = 0x00;
+			UInt8 DMA_Data = 0x00;
+
 			//Other Variables
 			bool PollingInput = false;
 
@@ -44,6 +51,7 @@ namespace NesEmulator
 
 			//Other Functions
 			void Clock();
+			void Reset();
 			void DrawVideo();
 			void InsertCartridge(std::string_view NewCartPath);
 			void UpdateVideoOutput(Diligent::IRenderDevice* RenderDevice, Diligent::IDeviceContext* Context);

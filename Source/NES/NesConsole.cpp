@@ -25,13 +25,57 @@ namespace NesEmulator
 
 	void NesConsole::Clock()
 	{
+		//PPU Clock - Picture Processing Unit
 		PPU.Clock();
 
+		//CPU Clock or DMA Transfer
 		if (SystemClockCounter % 3 == 0)
 		{
-			CPU.Clock();
+			if (DMA_Transfer == true)
+			{
+				if (DMA_Wait)
+				{
+					if (SystemClockCounter % 2 == 1)
+					{
+						DMA_Wait = false;
+					}
+				}
+				else
+				{
+					if (SystemClockCounter % 2 == 0)
+					{
+						UInt16 Address = (DMA_Page << 8) | DMA_Address;
+						DMA_Data = CPURead(Address);
+					}
+					else
+					{
+						UInt8 Index = std::floor(DMA_Address / 4);
+
+						switch (DMA_Address % 4)
+						{
+							case 0: PPU.PrimaryOAM[Index].PosY = DMA_Data; break;
+							case 1: PPU.PrimaryOAM[Index].TileIndex = DMA_Data; break;
+							case 2: PPU.PrimaryOAM[Index].Attribute.Register = DMA_Data; break;
+							case 3: PPU.PrimaryOAM[Index].PosX = DMA_Data; break;
+						}
+
+						DMA_Address++;
+
+						if (DMA_Address == 0x00)
+						{
+							DMA_Transfer = false;
+							DMA_Wait = true;
+						}
+					}
+				}
+			}
+			else
+			{
+				CPU.Clock();
+			}
 		}
 
+		//CPU Interrupts
 		if (CPU.Jam == false && PPU.NMI == true)
 		{
 			CPU.NMI();
@@ -39,6 +83,17 @@ namespace NesEmulator
 		}
 
 		SystemClockCounter++;
+	}
+	void NesConsole::Reset()
+	{
+		CPU.Reset();
+		PPU.Reset();
+
+		SystemClockCounter = 0;
+
+		DMA_Transfer = false;
+		DMA_Page = 0x00;
+		DMA_Address = 0x00;
 	}
 	void NesConsole::DrawVideo()
 	{
@@ -226,6 +281,13 @@ namespace NesEmulator
 		{
 			switch (Address)
 			{
+				case 0x4014:
+				{
+					DMA_Page = Data;
+					DMA_Address = 0x00;
+					DMA_Transfer = true;
+					break;
+				}
 				case 0x4016:
 				{
 					ControllerOne.ControllerWrite(Data);
@@ -256,6 +318,10 @@ namespace NesEmulator
 		{
 			switch (Address)
 			{
+				case 0x4015:
+				{
+					break;
+				}
 				case 0x4016:
 				{
 					ControllerOne.ControllerRead(ReturnData);

@@ -32,7 +32,6 @@ namespace NesEmulator
 
 				UInt16 Register = 0x0000;
 			};
-
 			union Controller
 			{
 				struct
@@ -49,7 +48,6 @@ namespace NesEmulator
 
 				UInt8 Register = 0x00;
 			};
-
 			union Mask
 			{
 				struct
@@ -66,6 +64,39 @@ namespace NesEmulator
 
 				UInt8 Register;
 			};
+			union Status
+			{
+				struct
+				{
+					UInt8 Unused : 5;
+					UInt8 SpriteOverflow : 1;
+					UInt8 SpriteZero : 1;
+					UInt8 VerticalBlank : 1;
+				};
+
+				UInt8 Register = 0x00;
+			};
+
+			union SpriteAttribute
+			{
+				struct
+				{
+					UInt8 Palette : 2;
+					UInt8 Unused : 3;
+					UInt8 Priority : 1;
+					UInt8 FlipH : 1;
+					UInt8 FlipV : 1;
+				};
+
+				UInt8 Register;
+			};
+			struct SpriteData
+			{
+				UInt8 PosX;
+				UInt8 PosY;
+				UInt8 TileIndex;
+				SpriteAttribute Attribute;
+			};
 
 		private:
 
@@ -76,20 +107,8 @@ namespace NesEmulator
 			UInt32 FrameCounter = 0;
 
 			//Memory
-			ImVec4 PaletteColors[64];
 			UInt8 PaletteRAM[0x20];
 			UInt8 NameTable[2][1024];
-
-			//Registers
-			Controller Controller;
-			Mask Mask;
-			UInt8  Status	   = 0;
-			UInt8  OAM_Address = 0;
-			UInt8  OAM_Data	   = 0;
-			UInt16 Scroll	   = 0;
-			VRAMAddress PPUAddress;
-			UInt8  PPUData	   = 0;
-			UInt8  OAM_DMA	   = 0;
 
 			//Background Registers
 			VRAMAddress TempVRaddr;
@@ -107,6 +126,22 @@ namespace NesEmulator
 			UInt16 HighAttributeByte = 0;
 
 			//Sprite Registers
+			UInt8 SpriteListCount = 0;
+			UInt8 SpritePatternLow[8];
+			UInt8 SpritePatternHigh[8];
+			UInt8 SpriteAttributes[8];
+			UInt8 SpriteXposCounters[8];
+
+			UInt8 SpriteEvalEntryIndex = 0;
+			Int16 SpriteEvalPosYdiff = 0;
+			bool SpriteZeroHitPossible = false;
+			bool SpriteZeroRender = false;
+
+			UInt8 SpriteCurrentFetch = 0;
+			UInt16 SpritePatternLowAddr = 0;
+			UInt16 SpritePatternHighAddr = 0;
+			UInt8 SpritePatternLowByte = 0;
+			UInt8 SpritePatternHighByte = 0;
 
 			//Helper Variables
 			Int16 ScanlineCounter = -1;
@@ -115,7 +150,10 @@ namespace NesEmulator
 			//Helper Functions
 			void ShiftBGRegisters(); //Shift our background registers.
 			void LoadBGShiftRegisters(); //Loads up the shift registers for the background.
-			void LoadSpriteShiftRegisters(); //Loads up the shift registers for the sprites.
+			void ShiftSpriteRegisters(); //Loads up the shift registers for the sprites.
+			void GetBackgroundPixelData(UInt8 &PixelIndex, UInt8 &PaletteIndex);
+			void GetSpritePixelData(UInt8& PixelIndex, UInt8& PaletteIndex, UInt8 &Priority);
+			void GetFinalPixelData(UInt8 &OutPixel, UInt8 &OutPalette, UInt8 BgPixel, UInt8 BGpalette, UInt8 SpritePixel, UInt8 SpritePalette, UInt8 Priority);
 			
 			//Debug Stuff
 			Diligent::RefCntAutoPtr<Diligent::ITextureView> LeftPatternTable;
@@ -128,10 +166,25 @@ namespace NesEmulator
 			NesPPU();
 			~NesPPU();
 
+			//Registers
+			Controller  Controller;
+			Mask		Mask;
+			Status		Status;
+			UInt8		OAM_Address = 0;
+			UInt8		OAM_Data = 0;
+			UInt16		Scroll = 0;
+			VRAMAddress PPUAddress;
+			UInt8		PPUData = 0;
+			UInt8		OAM_DMA = 0;
+
 			//Public Variables
 			UInt8* PixelOutputData;
+			ImVec4 PaletteColors[64];
 			bool FrameComplete = false;
 			bool NMI = false;
+
+			SpriteData PrimaryOAM[64];
+			SpriteData SecondaryOAM[8];
 
 			//Other Functions
 			void Clock();

@@ -9,12 +9,9 @@ namespace NesEmulator
 	{
 		OPTICK_EVENT();
 
-		//Setup Registers If Needed
-		Status = 0;
-
 		//Fill in our available palettes.
 		std::ifstream PaletteFile;
-		PaletteFile.open("F:/OmegaGamingHunters Folder/TestNES Emulator/Build/Emulator/Distribute_x64/Assets/Palette/Original Hardware (FBX).pal", std::ifstream::binary);
+		PaletteFile.open("F:/OmegaGamingHunters Folder/TestNES Emulator/Assets/Palette/Original Hardware (FBX).pal", std::ifstream::binary);
 
 		for (int i = 0; i < 64; i++)
 		{
@@ -26,11 +23,13 @@ namespace NesEmulator
 			PaletteColors[i].w = 1.00f;		
 		}
 
+		PaletteFile.close();
+
+		//Initalize our Memory.
 		for (auto& i : PaletteRAM)
 		{
 			i = 0x00;
 		}
-
 		for (auto& i : NameTable[0])
 		{
 			i = 0x00;
@@ -38,9 +37,7 @@ namespace NesEmulator
 		for (auto& i : NameTable[1])
 		{
 			i = 0x00;
-		}
-
-		PaletteFile.close();
+		}	
 
 		//Allocate our pixel data.
 		PixelOutputData = new UInt8[245760];
@@ -60,16 +57,25 @@ namespace NesEmulator
 				PixelCounter = 1;
 			}
 
-			//Disable Vertical Blank
+			//Clear our STATUS register
 			if (ScanlineCounter == -1 && PixelCounter == 1)
 			{
-				Status = Status & ~((UInt8)1 << 7);
+				Status.VerticalBlank = 0;
+				Status.SpriteOverflow = 0;
+				Status.SpriteZero = 0;
+
+				for (int i = 0; i < 8; i++)
+				{
+					SpritePatternLow[i] = 0x00;
+					SpritePatternHigh[i] = 0x00;
+				}
 			}
 
 			//Get the info needed to render a pixel (fetching bg tiles and sprites.
 			if ((PixelCounter >= 2 && PixelCounter < 258) || (PixelCounter >= 321 && PixelCounter < 338))
 			{
 				ShiftBGRegisters();
+				ShiftSpriteRegisters();			
 
 				//Fetch tile data and load them into our shift registers every 8 cycles.
 				switch ((PixelCounter - 1) % 8)
@@ -128,6 +134,151 @@ namespace NesEmulator
 
 						break;
 					}
+				}
+
+				//Sprite evaluation
+				if (PixelCounter == 257 && ScanlineCounter >= 0)
+				{
+					std::memset(SecondaryOAM, 0xFF, 8 * (sizeof(SpriteData)));
+
+					SpriteZeroHitPossible = false;
+					SpriteListCount = 0;
+
+					for (uint8_t i = 0; i < 8; i++)
+					{
+						SpritePatternLow[i] = 0;
+						SpritePatternHigh[i] = 0;
+					}
+
+					SpriteEvalEntryIndex = 0;				
+
+					//Is the current sprite in range?s
+					while (SpriteEvalEntryIndex < 64 && SpriteListCount < 9)
+					{
+						SpriteEvalPosYdiff = ((int16_t)ScanlineCounter - (int16_t)PrimaryOAM[SpriteEvalEntryIndex].PosY);
+
+						if (SpriteEvalPosYdiff >= 0 && SpriteEvalPosYdiff < (Controller.SpriteSize ? 16 : 8) && SpriteListCount < 8)
+						{
+							// Sprite is visible, so copy the attribute entry over to our
+							// scanline sprite cache. Ive added < 8 here to guard the array
+							// being written to.
+							if (SpriteListCount < 8)
+							{
+								// Is this sprite sprite zero?
+								if (SpriteEvalEntryIndex == 0)
+								{
+									// It is, so its possible it may trigger a 
+									// sprite zero hit when drawn
+									SpriteZeroHitPossible = true;
+								}
+
+								SecondaryOAM[SpriteListCount].PosX = PrimaryOAM[SpriteEvalEntryIndex].PosX;
+								SecondaryOAM[SpriteListCount].PosY = PrimaryOAM[SpriteEvalEntryIndex].PosY;
+								SecondaryOAM[SpriteListCount].TileIndex = PrimaryOAM[SpriteEvalEntryIndex].TileIndex;
+								SecondaryOAM[SpriteListCount].Attribute.Register = PrimaryOAM[SpriteEvalEntryIndex].Attribute.Register;
+							}
+
+							SpriteListCount++;
+						}
+
+						SpriteEvalEntryIndex++;
+					}
+
+					Status.SpriteOverflow = (SpriteListCount >= 8);
+				}
+			}
+
+			//Sprite Fetches
+			if (PixelCounter == 340)
+			{
+				for (int i = 0; i < SpriteListCount; i++)
+				{
+					//Find our Memory Address
+					if (!Controller.SpriteSize)
+					{
+						//8x8 Sprite
+						if (!(SecondaryOAM[i].Attribute.Register & 0x80))
+						{
+							SpritePatternLowAddr = (Controller.SpriteTableAddr << 12) | (SecondaryOAM[i].TileIndex << 4) | (ScanlineCounter - SecondaryOAM[i].PosY);
+						}
+						else
+						{
+							SpritePatternLowAddr = (Controller.SpriteTableAddr << 12) | (SecondaryOAM[i].TileIndex << 4) | (7 - (ScanlineCounter - SecondaryOAM[i].PosY));
+						}
+					}
+					else
+					{
+						//8x16 Sprite
+						if (!(SecondaryOAM[i].Attribute.Register & 0x80))
+						{
+							//Normal (Not flipped Vertically)
+							if (ScanlineCounter - SecondaryOAM[i].PosY < 8)
+							{
+								//Reading Top half Tile
+								SpritePatternLowAddr = ((SecondaryOAM[i].TileIndex & 0x01) << 12) | ((SecondaryOAM[i].TileIndex & 0xFE) << 4) | ((ScanlineCounter - SecondaryOAM[i].PosY) & 0x07);
+							}
+							else
+							{
+								//Reading Bottom Half Tile
+								SpritePatternLowAddr = ((SecondaryOAM[i].TileIndex & 0x01) << 12) | (((SecondaryOAM[i].TileIndex & 0xFE) + 1) << 4) | ((ScanlineCounter - SecondaryOAM[i].PosY) & 0x07);
+							}
+						}
+						else
+						{
+							if (ScanlineCounter - SecondaryOAM[i].PosY < 8)
+							{
+								// Reading Top half Tile
+								SpritePatternLowAddr = ((SecondaryOAM[i].TileIndex & 0x01) << 12) | (((SecondaryOAM[i].TileIndex & 0xFE) + 1) << 4) | (7 - (ScanlineCounter - SecondaryOAM[i].PosY) & 0x07);
+							}
+							else
+							{
+								// Reading Bottom Half Tile
+								SpritePatternLowAddr = ((SecondaryOAM[i].TileIndex & 0x01) << 12) | ((SecondaryOAM[i].TileIndex & 0xFE) << 4) | (7 - (ScanlineCounter - SecondaryOAM[i].PosY) & 0x07);
+							}
+						}
+					}
+
+					//Get our PatternData.
+					SpritePatternLowByte = PPURead(SpritePatternLowAddr);
+
+					//Flip Horizontally (if needed)
+					if (SecondaryOAM[i].Attribute.Register & 0x40)
+					{
+						auto flipbyte = [](UInt8 Byte)
+							{
+								Byte = (Byte & 0xF0) >> 4 | (Byte & 0x0F) << 4;
+								Byte = (Byte & 0xCC) >> 2 | (Byte & 0x33) << 2;
+								Byte = (Byte & 0xAA) >> 1 | (Byte & 0x55) << 1;
+								return Byte;
+							};
+
+						//Flip
+						SpritePatternLowByte = flipbyte(SpritePatternLowByte);
+					}
+
+					//Load Our Data into our shift registers.
+					SpritePatternLow[i] = SpritePatternLowByte;
+
+					//Get our PatternData.
+					SpritePatternHighAddr = SpritePatternLowAddr + 8;
+					SpritePatternHighByte = PPURead(SpritePatternHighAddr);
+
+					//Flip Horizontally (if needed)
+					if (SecondaryOAM[i].Attribute.FlipH)
+					{
+						auto flipbyte = [](UInt8 Byte)
+							{
+								Byte = (Byte & 0xF0) >> 4 | (Byte & 0x0F) << 4;
+								Byte = (Byte & 0xCC) >> 2 | (Byte & 0x33) << 2;
+								Byte = (Byte & 0xAA) >> 1 | (Byte & 0x55) << 1;
+								return Byte;
+							};
+
+						//Flip
+						SpritePatternHighByte = flipbyte(SpritePatternHighByte);
+					}
+
+					SpritePatternHigh[i] = SpritePatternHighByte;
 				}
 			}
 
@@ -193,7 +344,7 @@ namespace NesEmulator
 			if (ScanlineCounter == 241 && PixelCounter == 1)
 			{
 				//Turn on at the second tick of the scanline.
-				Status |= 0x80;
+				Status.VerticalBlank = 1;
 
 				if (Controller.NMIEnable)
 				{
@@ -203,26 +354,22 @@ namespace NesEmulator
 		}
 
 		//Create our pixel.
-		UInt8 PixelIndex = 0x00;   //The 2-bit pixel to be rendered
-		UInt8 PaletteIndex = 0x00; //The 3-bit index of the palette the pixel indexes
+		UInt8 BgPixelIndex = 0x00;   //The 2-bit Background pixel to be rendered
+		UInt8 BgPaletteIndex = 0x00; //The 3-bit index of the Background palette the pixel indexes
+		UInt8 SpritePixelIndex = 0x00;
+		UInt8 SpritePaletteIndex = 0x00;
+		UInt8 SpritePriority = 0x00;
 
-		if (Mask.RenderBG)
-		{
-			UInt16 bit_mux = 0x8000 >> Scroll;
+		GetBackgroundPixelData(BgPixelIndex, BgPaletteIndex);
+		GetSpritePixelData(SpritePixelIndex, SpritePaletteIndex, SpritePriority);
 
-			UInt8 PixIndexLow = (LowBGtileInfo & bit_mux) > 0;
-			UInt8 PixIndexHigh = (HighBGtileInfo & bit_mux) > 0;
+		//Get our final pixel and palette and create our RGB values for the pixel array.
+		UInt8 Pixel = 0;
+		UInt8 Palette = 0;
 
-			//Combine to form pixel index
-			PixelIndex = (PixIndexHigh << 1) | PixIndexLow;
+		GetFinalPixelData(Pixel, Palette, BgPixelIndex, BgPaletteIndex, SpritePixelIndex, SpritePaletteIndex, SpritePriority);
 
-			//Get palette
-			UInt8 PalIndexLow = (LowAttributeByte & bit_mux) > 0;
-			UInt8 PalIndexHigh = (HighAttributeByte & bit_mux) > 0;
-			PaletteIndex = (PalIndexHigh << 1) | PalIndexLow;
-		}
-
-		UInt8 PalatteSelect = PPURead(0x3F00 + (PaletteIndex << 2) + PixelIndex) & 0x3F;
+		UInt8 PalatteSelect = PPURead(0x3F00 + (Palette << 2) + Pixel) & 0x3F;
 		UInt8 RedPixel = PaletteColors[PalatteSelect].x * float(0xFF);
 		UInt8 GreenPixel = PaletteColors[PalatteSelect].y * float(0xFF);
 		UInt8 BluePixel = PaletteColors[PalatteSelect].z * float(0xFF);
@@ -272,6 +419,7 @@ namespace NesEmulator
 
 		Controller.Register = 0;
 		Mask.Register = 0;
+		Status.Register = 0;
 		Scroll = 0;
 		PPUAddress.Register = 0x0000;
 		TempVRaddr.Register = 0x0000;
@@ -318,7 +466,20 @@ namespace NesEmulator
 			case 0x001: Mask.Register = Data; break;
 			case 0x002: break;
 			case 0x003: OAM_Address = Data; break;
-			case 0x004: OAM_Data = Data; break;
+			case 0x004: 
+			{
+				UInt8 Index = (OAM_Address / 4);
+				switch (OAM_Address & 0x04)
+				{
+					case 0: PrimaryOAM[Index].PosY = Data;				 break;
+					case 1: PrimaryOAM[Index].TileIndex = Data;			 break;
+					case 2: PrimaryOAM[Index].Attribute.Register = Data; break;
+					case 3: PrimaryOAM[Index].PosX = Data;				 break;
+				}
+
+				OAM_Address++;
+				break;
+			}
 			case 0x005: 
 			{
 				if (WriteToggle == false)
@@ -372,8 +533,8 @@ namespace NesEmulator
 			case 0x001: break;
 			case 0x002: 
 			{
-				Data = (Status & 0xE0) | (PPUData & 0x1F);
-				Status = Status & ~((UInt8)1 << 7);
+				Data = (Status.Register & 0xE0) | (PPUData & 0x1F);
+				Status.VerticalBlank = 0;
 				WriteToggle = false;
 
 				break;
@@ -381,7 +542,14 @@ namespace NesEmulator
 			case 0x003: break;
 			case 0x004: 
 			{
-				//Data = OAM_Data;
+				UInt8 Index = (Address / 4);
+				switch (Address & 0x04)
+				{
+					case 0: Data = PrimaryOAM[Index].PosY;				 OAM_Data = PrimaryOAM[Index].PosY;				  break;
+					case 1: Data = PrimaryOAM[Index].TileIndex;			 OAM_Data = PrimaryOAM[Index].TileIndex;		  break;
+					case 2: Data = PrimaryOAM[Index].Attribute.Register; OAM_Data = PrimaryOAM[Index].Attribute.Register; break;
+					case 3: Data = PrimaryOAM[Index].PosX;				 OAM_Data = PrimaryOAM[Index].PosX;				  break;
+				}
 
 				break;
 			}
@@ -598,11 +766,11 @@ namespace NesEmulator
 		ImGui::Text("Emphasize Blue: % d", Mask.Blue);
 		ImGui::Unindent();
 
-		ImGui::Text("Status: 0x%X", Status);
+		ImGui::Text("Status: 0x%X", Status.Register);
 		ImGui::Indent();
-		ImGui::Text("Sprite Overflow: %d", (Status & 0x20) ? 1 : 0);
-		ImGui::Text("Sprite Zero: %d", (Status & 0x40) ? 1 : 0);
-		ImGui::Text("VBlank: %d", (Status & 0x80) ? 1 : 0);
+		ImGui::Text("Sprite Overflow: %d", Status.SpriteOverflow);
+		ImGui::Text("Sprite Zero: %d", Status.SpriteZero);
+		ImGui::Text("VBlank: %d", Status.VerticalBlank);
 		ImGui::Unindent();
 
 		ImGui::Text("OAM Address: 0x%X", OAM_Address);
@@ -757,9 +925,123 @@ namespace NesEmulator
 		LowAttributeByte  = (LowAttributeByte & 0xFF00) | ((AttributeByte & 0b01) ? 0xFF : 0x00);
 		HighAttributeByte = (HighAttributeByte & 0xFF00) | ((AttributeByte & 0b10) ? 0xFF : 0x00);
 	}
-	void NesPPU::LoadSpriteShiftRegisters()
+	void NesPPU::ShiftSpriteRegisters()
 	{
+		if (Mask.RenderSprites && (PixelCounter >= 1 && PixelCounter < 258))
+		{
+			for (int i = 0; i < SpriteListCount; i++)
+			{
+				if (SecondaryOAM[i].PosX > 0)
+				{
+					SecondaryOAM[i].PosX--;
+				}
+				else
+				{
+					SpritePatternLow[i] <<= 1;
+					SpritePatternHigh[i] <<= 1;
+				}
+			}
+		}
+	}
+	void NesPPU::GetBackgroundPixelData(UInt8& PixelIndex, UInt8& PaletteIndex)
+	{
+		if (Mask.RenderBG)
+		{
+			UInt16 BitOffset = 0x8000 >> Scroll;
 
+			UInt8 PixIndexLow = (LowBGtileInfo & BitOffset) > 0;
+			UInt8 PixIndexHigh = (HighBGtileInfo & BitOffset) > 0;
+
+			//Combine to form pixel index
+			PixelIndex = (PixIndexHigh << 1) | PixIndexLow;
+
+			//Get palette
+			UInt8 PalIndexLow = (LowAttributeByte & BitOffset) > 0;
+			UInt8 PalIndexHigh = (HighAttributeByte & BitOffset) > 0;
+			PaletteIndex = (PalIndexHigh << 1) | PalIndexLow;
+		}
+	}
+	void NesPPU::GetSpritePixelData(UInt8& PixelIndex, UInt8& PaletteIndex, UInt8 &Priority)
+	{
+		if (Mask.RenderSprites)
+		{
+			SpriteZeroRender = false;
+
+			for (UInt8 i = 0; i < SpriteListCount; i++)
+			{
+				if (SecondaryOAM[i].PosX == 0)
+				{
+					uint8_t fg_pixel_lo = (SpritePatternLow[i] & 0x80) > 0;
+					uint8_t fg_pixel_hi = (SpritePatternHigh[i] & 0x80) > 0;
+					PixelIndex = (fg_pixel_hi << 1) | fg_pixel_lo;
+
+					PaletteIndex = (SecondaryOAM[i].Attribute.Register & 0x03) + 0x04;
+					Priority = (SecondaryOAM[i].Attribute.Register & 0x20) == 0;
+
+					if (PixelIndex != 0)
+					{
+						if (i == 0)
+						{
+							SpriteZeroRender = true;
+						}
+
+						break;
+					}
+				}
+			}
+		}
+	}
+	void NesPPU::GetFinalPixelData(UInt8& OutPixel, UInt8& OutPalette, UInt8 BgPixel, UInt8 BGpalette, UInt8 SpritePixel, UInt8 SpritePalette, UInt8 Priority)
+	{
+		if (BgPixel == 0 && SpritePixel == 0)
+		{
+			OutPixel = 0x00;
+			OutPalette = 0x00;
+		}
+		else if (BgPixel == 0 && SpritePixel > 0)
+		{
+			OutPixel = SpritePixel;
+			OutPalette = SpritePalette;
+		}
+		else if (BgPixel > 0 && SpritePixel == 0)
+		{
+			OutPixel = BgPixel;
+			OutPalette = BGpalette;
+		}
+		else if (BgPixel > 0 && SpritePixel > 0)
+		{
+			if (Priority)
+			{
+				OutPixel = SpritePixel;
+				OutPalette = SpritePalette;
+			}
+			else
+			{
+				OutPixel = BgPixel;
+				OutPalette = BGpalette;
+			}
+
+			if (SpriteZeroHitPossible && SpriteZeroRender)
+			{
+				if (Mask.RenderBG & Mask.RenderSprites)
+				{
+					if (~(Mask.RenderBGLeft | Mask.RenderSpriteLeft))
+					{
+						if (PixelCounter >= 9 && PixelCounter < 258)
+						{
+							Status.SpriteZero = 1;
+						}
+					}
+					else
+					{
+						if (PixelCounter >= 1 && PixelCounter < 258)
+						{
+							Status.SpriteZero = 1;
+						}
+					}
+				}
+			}
+		}
 	}
 
 	void NesPPU::UpdateDebugPatternTable(Diligent::IRenderDevice* RenderDevice)
